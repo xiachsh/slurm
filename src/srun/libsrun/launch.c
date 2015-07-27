@@ -163,6 +163,7 @@ extern int launch_common_create_job_step(srun_job_t *job, bool use_all_cpus,
 	unsigned long step_wait = 0, my_sleep = 0;
 	uint16_t base_dist;
 
+//	info("******** MNP entering launch_common_create_job_step"); // MNP debug
 	if (!job) {
 		error("launch_common_create_job_step: no job given");
 		return SLURM_ERROR;
@@ -388,6 +389,7 @@ extern int launch_common_create_job_step(srun_job_t *job, bool use_all_cpus,
 	 */
 	job_update_io_fnames(job);
 
+//	info("******** MNP exiting launch_common_create_job_step"); // MNP debug
 	return SLURM_SUCCESS;
 }
 

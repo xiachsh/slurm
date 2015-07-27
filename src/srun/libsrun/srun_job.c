@@ -114,7 +114,7 @@ extern uint32_t group_number;						/* wjb */
 extern bool packjob;							/* wjb */
 extern bool packleader;							/* wjb */
 
-static int shepard_fd = -1;
+//static int shepard_fd = -1;
 static pthread_t signal_thread = (pthread_t) 0;
 static int pty_sigarray[] = { SIGWINCH, 0 };
 
@@ -672,8 +672,12 @@ extern void create_srun_job(srun_job_t **p_job, bool *got_alloc,
 		if ( !(resp = allocate_nodes(handle_signals)) )
 			exit(error_exit);
 
-		if (packjob == true)
+		if (packjob == true) {
+			opt.shepard_fd = -1;
+			opt.shepard_fd = _shepard_spawn(job, *got_alloc);
+			//info("******** MNP %d: in create_srun_job, opt.shepard_fd=%d", getpid(), opt.shepard_fd);
 			return;
+		}
 		global_resp = resp;
 		*got_alloc = true;
 		_print_job_information(resp);
@@ -715,13 +719,15 @@ extern void create_srun_job(srun_job_t **p_job, bool *got_alloc,
 		if (_become_user () < 0)
 			info("Warning: Unable to assume uid=%u", opt.uid);
 
-		if (!job || create_job_step(job, true) < 0) {
-			slurm_complete_job(resp->job_id, 1);
-			exit(error_exit);
-		}
+		if(pack_desc_count == 0) {
+			if (!job || create_job_step(job, true) < 0) {
+				slurm_complete_job(resp->job_id, 1);
+				exit(error_exit);
+			}
 
-		global_resp = NULL;
-		slurm_free_resource_allocation_response_msg(resp);
+			global_resp = NULL;
+			slurm_free_resource_allocation_response_msg(resp);
+		}
 	}
 
 	/*
@@ -735,7 +741,9 @@ extern void create_srun_job(srun_job_t **p_job, bool *got_alloc,
 		 * Spawn process to insure clean-up of job and/or step
 		 * on abnormal termination
 		 */
-		shepard_fd = _shepard_spawn(job, *got_alloc);
+		opt.shepard_fd = -1;
+		opt.shepard_fd = _shepard_spawn(job, *got_alloc);
+		//info("******** MNP %d: in create_srun_job, opt.shepard_fd=%d", getpid(), opt.shepard_fd);
 	}
 
 	*p_job = job;
@@ -804,6 +812,7 @@ cleanup:
 
 	mpir_cleanup();
 	log_fini();
+	//info("******** MNP pid=%d: exiting fini_srun", getpid());
 }
 
 void
@@ -1480,6 +1489,7 @@ static int _set_umask_env(void)
 static void _shepard_notify(int shepard_fd)
 {
 	int rc;
+	//info("******** MNP pid=%d, entering _shepard_notify, shepard_fd=%d", getpid(), shepard_fd);
 
 	while (1) {
 		rc = write(shepard_fd, "", 1);
@@ -1491,6 +1501,7 @@ static void _shepard_notify(int shepard_fd)
 		break;
 	}
 	close(shepard_fd);
+	//info("******** MNP pid=%d, exiting _shepard_notify", getpid());
 }
 
 static int _shepard_spawn(srun_job_t *job, bool got_alloc)
@@ -1628,6 +1639,6 @@ static int _validate_relative(resource_allocation_response_msg_t *resp)
 
 static void _call_spank_fini(void)
 {
-	if (-1 != shepard_fd)
+	if (-1 != opt.shepard_fd)
 		spank_fini(NULL);
 }
