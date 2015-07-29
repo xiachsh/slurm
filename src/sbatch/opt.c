@@ -203,6 +203,9 @@ enum wrappers {
 #define LONG_OPT_DEADLINE        0x166
 
 extern bool packjob;
+extern bool packleader;
+extern uint32_t group_number;
+extern char *pack_job_id;
 
 /*---- global variables, defined in opt.h ----*/
 opt_t opt;
@@ -876,7 +879,6 @@ char *process_options_first_pass(int argc, char **argv)
 
 	struct option *optz = spank_option_table_create(long_options);
 
-info("returned from call to spank_option_table_create");			/* wjb */
 	if (!optz) {
 		error("Unable to create options table");
 		exit(error_exit);
@@ -884,7 +886,6 @@ info("returned from call to spank_option_table_create");			/* wjb */
 
 	/* initialize option defaults */
 	_opt_default();
-info("returned from _opt_default");			/* wjb */
 
 	opt.progname = xbasename(argv[0]);
 	optind = 0;
@@ -923,14 +924,11 @@ info("returned from _opt_default");			/* wjb */
 			break;
 		}
 	}
-info("end of while loop for specific options");				/* wjb */
 	xfree(str);
 	spank_option_table_destroy(optz);
-info("returned from spank_option_table_destroy");			/* wjb */
 	if (argc > optind && opt.wrap != NULL) {
 		error("Script arguments are not permitted with the"
 		      " --wrap option.");
-info("took error exit dur to wrap option");				/* wjb */
 		exit(error_exit);
 	}
 	if (argc > optind) {
@@ -939,13 +937,10 @@ info("took error exit dur to wrap option");				/* wjb */
 
 		opt.script_argc = argc - optind;
 		leftover = argv + optind;
-info("argc is %u, optind is %u, opt.script_argc is %u", argc, optind, opt.script_argc);	/* wjb */
 		opt.script_argv = (char **) xmalloc((opt.script_argc + 1)
 						    * sizeof(char *));
-		for (i = 0; i < opt.script_argc; i++) {			/* wjb added { */
+		for (i = 0; i < opt.script_argc; i++)
 			opt.script_argv[i] = xstrdup(leftover[i]);
-info("opt.script_arg[%u] is %s", i, opt.script_argv[i]);		/* wjb */
-		}							/* wjb */
 		opt.script_argv[i] = NULL;
 	}
 	if (opt.script_argc > 0) {
@@ -953,15 +948,13 @@ info("opt.script_arg[%u] is %s", i, opt.script_argv[i]);		/* wjb */
 		char *cmd       = opt.script_argv[0];
 		int  mode       = R_OK;
 		if (packjob == true)
-			info("scripts for pack jobs are ignored");
+			info("Scripts for pack jobs are ignored");
 		if ((fullpath = search_path(opt.cwd, cmd, true, mode, false))) {
 			xfree(opt.script_argv[0]);
 			opt.script_argv[0] = fullpath;
 		}
-info("returning opt.script_argv[0] value %s", opt.script_argv[0]);		/* wjb */
 		return opt.script_argv[0];
 	} else {
-info("return NULL from process_options_first_pass");				/* wjb */
 		return NULL;
 	}
 }
@@ -1309,6 +1302,10 @@ static void _set_options(int argc, char **argv)
 	}
 
 	optind = 0;
+//	int index;
+//	for (index=0; index < argc; index++) {
+//	info("argv[%u] is %s\n", index, argv[index]);				/* wjb */
+//	}
 	while ((opt_char = getopt_long(argc, argv, opt_string,
 				       optz, &option_index)) != -1) {
 		switch (opt_char) {
