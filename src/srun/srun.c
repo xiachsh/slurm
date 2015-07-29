@@ -1078,7 +1078,6 @@ static int _file_bcast(void)
 int _srun_jobpack(int ac, char **av)
 {
 	int debug_level;
-	int rc = 0;
 	log_options_t logopt = LOG_OPTS_STDERR_ONLY;
 	bool got_alloc = false;
 	int j, desc_index, job_index;
@@ -1495,6 +1494,8 @@ static void _enhance_env_jobpack(bool got_alloc)
 				env->ntasks_per_socket = opt.ntasks_per_socket;
 			if (opt.ntasks_per_core != NO_VAL)
 				env->ntasks_per_core = opt.ntasks_per_core;
+			if (opt.job_name)
+				env->job_name = opt.job_name;
 			env->distribution = opt.distribution;
 			if (opt.plane_size != NO_VAL)
 				env->plane_size = opt.plane_size;
@@ -1580,7 +1581,6 @@ static int _launch_srun_steps_jobpack(bool got_alloc)
 {
 	int i, pid, *forkpids;
 	opt_t *opt_ptr;
-	env_t *env;
 	slurm_step_io_fds_t cio_fds = SLURM_STEP_IO_FDS_INITIALIZER;
 	slurm_step_launch_callbacks_t step_callbacks;
 
@@ -1657,7 +1657,6 @@ static int _launch_srun_steps_jobpack(bool got_alloc)
 {
 	int i, j, job_index, pid_idx, pid, *forkpids;
 	opt_t *opt_ptr;
-	env_t *env;
 	slurm_step_io_fds_t cio_fds = SLURM_STEP_IO_FDS_INITIALIZER;
 	slurm_step_launch_callbacks_t step_callbacks;
 
@@ -1683,7 +1682,7 @@ static int _launch_srun_steps_jobpack(bool got_alloc)
 			opt_ptr = _get_opt(i, j);
 			memcpy(&opt, opt_ptr, sizeof(opt_t));
 			job = _get_srun_job(i, j);
-			env = _get_env(i, j);
+			_get_env(i, j);
 			launch_common_set_stdio_fds(job, &cio_fds);
 			debug("******** MNP forking child srun for pack desc[%d].pack_job_env[%d]", i, j);
 			pid = fork();
