@@ -1245,12 +1245,6 @@ env_array_for_batch_job(char ***dest, const batch_job_launch_msg_t *batch,
 	env_array_overwrite_fmt(dest, newenv, "%s", batch->nodes);
 	xfree(newenv);
 
-	if ((tmp = getenvp(*dest, "SLURM_NODELIST_MPI"))) {
-	        newenv = env_jobpack("SLURM_NODELIST_MPI", group_number);
-		env_array_overwrite_fmt(dest, newenv, "%s", tmp);
-		xfree(newenv);
-	}
-
 	if ((batch->cpus_per_task != 0) &&
 	    (batch->cpus_per_task != (uint16_t) NO_VAL))
 		cpus_per_task = batch->cpus_per_task;
@@ -1277,10 +1271,6 @@ env_array_for_batch_job(char ***dest, const batch_job_launch_msg_t *batch,
 	} else {
 		num_tasks = num_cpus / cpus_per_task;
 	}
-
-	newenv = env_jobpack("SLURM_NTASKS_MPI", group_number);
-	env_array_overwrite_fmt(dest, newenv, "%u", num_tasks);
-	xfree(newenv);
 
 	if ((tmp = getenvp(*dest, "SLURM_ARBITRARY_NODELIST"))) {
 		task_dist = SLURM_DIST_ARBITRARY;
