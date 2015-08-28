@@ -548,10 +548,6 @@ static int _init_task_layout(slurm_step_layout_t *step_layout,
 
 	debug("******** MNP pid=%d calling lower function then exiting _init_task_layout", getpid());
 	debug("******** MNP pid=%d task_dist=%d", getpid(), task_dist);
-  /*      if (((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC) ||
-            ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC_CYCLIC) ||
-            ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC_CFULL) ||
-            ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC_BLOCK)) */  //nlk merge issue
 	if ((task_dist & SLURM_DIST_NODEMASK) == SLURM_DIST_NODECYCLIC)
 		return _task_layout_cyclic(step_layout, cpus);
 	else if (((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_ARBITRARY) &&
