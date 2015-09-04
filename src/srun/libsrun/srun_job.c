@@ -104,7 +104,6 @@ typedef struct allocation_info {
 } allocation_info_t;
 
 extern uint32_t pack_desc_count;
-extern uint32_t group_number;
 extern uint32_t group_index;
 extern uint32_t job_index;
 extern bool packjob;
@@ -448,12 +447,12 @@ extern void init_srun(int ac, char **av,
 	xsignal_block(pty_sigarray);
 
 /*
-int index1, group_number;
+int index1;
 info(" init_srun ac contains %u", ac);
 for (index1 = 0; index1 < ac; index1++) {
 	info ("av[%u] is %s", index1, av[index1]);
 }
-*/
+*/										/* wjb */
 
 
 	/* Initialize plugin stack, read options from plugins, etc.
@@ -512,6 +511,8 @@ extern void init_srun_jobpack(int ac, char **av,
 		      log_options_t *logopt, int debug_level,
 		      bool handle_signals)
 {
+	uint32_t group_number;
+
 	/* This must happen before we spawn any threads
 	 * which are not designed to handle arbitrary signals */
 	if (handle_signals) {
@@ -521,7 +522,7 @@ extern void init_srun_jobpack(int ac, char **av,
 	xsignal_block(pty_sigarray);
 
 /*
-int index1, group_number;
+int index1;
 info(" init_srun ac contains %u", ac);
 for (index1 = 0; index1 < ac; index1++) {
 	info ("av[%u] is %s", index1, av[index1]);
@@ -547,7 +548,7 @@ for (index1 = 0; index1 < ac; index1++) {
 	/* set default options, process commandline arguments, and
 	 * verify some basic values
 	 */
-	if (desc[group_index].pack_group_count != 0) {
+	if(pack_desc_count != 0) {
 		group_number =
 			desc[group_index].pack_job_env[job_index].group_number;
 		if (initialize_and_process_args_jobpack(ac, av, group_number) <
@@ -562,7 +563,7 @@ for (index1 = 0; index1 < ac; index1++) {
 			error ("srun initialization failed");
 			exit (1);
 		}
-		desc[group_index].pack_job_env[job_index].job_id = opt.jobid;  /* wjb this may cause a problem */
+		desc[group_index].pack_job_env[job_index].job_id = opt.jobid;
 	}
 
 	record_ppid();
@@ -771,7 +772,7 @@ extern void create_srun_jobpack(srun_job_t **p_job, bool *got_alloc,
 	/* now global "opt" should be filled in and available,
 	 * create a job from opt
 	 */
-//info(" **** in create_srun_jobpack, opt.jobid is %u", opt.jobid);			/* wjb */
+
 	if (opt.test_only) {
 		int rc = allocate_test();
 		if (rc) {
@@ -791,7 +792,6 @@ extern void create_srun_jobpack(srun_job_t **p_job, bool *got_alloc,
 			exit(error_exit);
 		}
 	} else if ((resp = existing_allocation())) {
-//info("took path of existing allocation");				/* wjb */
 		select_g_alter_node_cnt(SELECT_APPLY_NODE_MAX_OFFSET,
 					&resp->node_cnt);
 		if (opt.nodes_set_env && !opt.nodes_set_opt &&
@@ -839,7 +839,8 @@ extern void create_srun_jobpack(srun_job_t **p_job, bool *got_alloc,
 		if (_validate_relative(resp))
 			exit(error_exit);
 		job = job_step_create_allocation(resp);
-		_copy_srun_job_struct(desc[group_index].pack_job_env[job_index].job, job);
+		_copy_srun_job_struct(desc[group_index].pack_job_env[
+				      job_index].job, job);
 		slurm_free_resource_allocation_response_msg(resp);
 
 		if (opt.begin != 0) {
@@ -859,7 +860,8 @@ extern void create_srun_jobpack(srun_job_t **p_job, bool *got_alloc,
 			opt.shepard_fd = -1;
 			opt.shepard_fd = _shepard_spawn(job,
 					 *got_alloc);
-			_copy_opt_struct(desc[group_index].pack_job_env[job_index].opt, &opt);
+			_copy_opt_struct(desc[group_index].pack_job_env[
+					 job_index].opt, &opt);
 		}
 	} else {
 		/* Combined job allocation and job step launch */
