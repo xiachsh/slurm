@@ -464,10 +464,8 @@ for (index1 = 0; index1 < ac; index1++) {
 
 	/* Be sure to call spank_fini when srun exits.
 	 */
-//if (packjob == false) {							/* wjb */
-//	if (atexit(_call_spank_fini) < 0)
-//		error("Failed to register atexit handler for plugins: %m");
-//}
+	if (atexit(_call_spank_fini) < 0)
+		error("Failed to register atexit handler for plugins: %m");
 
 	/* set default options, process commandline arguments, and
 	 * verify some basic values
@@ -528,22 +526,6 @@ extern void init_srun_jobpack(int ac, char **av,
 	}
 */
 
-
-	/* Initialize plugin stack, read options from plugins, etc.
-	 */
-	init_spank_env();
-	if (spank_init(NULL) < 0) {
-		error("Plug-in initialization failed");
-		exit(error_exit);
-	}
-
-	/* Be sure to call spank_fini when srun exits.
-	 */
-//if (packjob == false) {							/* wjb */
-//	if (atexit(_call_spank_fini) < 0)
-//		error("Failed to register atexit handler for plugins: %m");
-//}
-
 	/* set default options, process commandline arguments, and
 	 * verify some basic values
 	 */
@@ -556,11 +538,6 @@ extern void init_srun_jobpack(int ac, char **av,
 	desc[group_index].pack_job_env[job_index].job_id = opt.jobid;
 
 	record_ppid();
-
-	if (spank_init_post_opt() < 0) {
-		error("Plugin stack post-option processing failed.");
-		exit(error_exit);
-	}
 
 	/* reinit log with new verbosity (if changed by command line)
 	 */
@@ -1827,10 +1804,8 @@ static int _validate_relative(resource_allocation_response_msg_t *resp)
 	return 0;
 }
 
-/*
 static void _call_spank_fini(void)
 {
 	if (-1 != opt.shepard_fd)
 		spank_fini(NULL);
 }
-*/						/* wjb */
