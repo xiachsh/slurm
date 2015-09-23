@@ -115,6 +115,7 @@ parse_command_line( int argc, char* argv[] )
 		{"licenses",   required_argument, 0, 'L'},
 		{"cluster",    required_argument, 0, 'M'},
 		{"clusters",   required_argument, 0, 'M'},
+		{"dependency", no_argument,       0, 'd'},
 		{"name",       required_argument, 0, 'n'},
                 {"noconvert",  no_argument,       0, OPT_LONG_NOCONVERT},
 		{"node",       required_argument, 0, 'w'},
@@ -155,7 +156,7 @@ parse_command_line( int argc, char* argv[] )
 	if (getenv("SQUEUE_PRIORITY"))
 		params.priority_flag = true;
 	while ((opt_char = getopt_long(argc, argv,
-				       "A:ahi:j::lL:n:M:O:o:p:Pq:R:rs::S:t:u:U:vVw:",
+				       "A:adhi:j::lL:n:M:O:o:p:Pq:R:rs::S:t:u:U:vVw:",
 				       long_options, &option_index)) != -1) {
 		switch (opt_char) {
 		case (int)'?':
@@ -171,6 +172,9 @@ parse_command_line( int argc, char* argv[] )
 			break;
 		case (int)'a':
 			params.all_flag = true;
+			break;
+		case (int)'d':
+			params.dependency = true;
 			break;
 		case (int)'h':
 			params.no_header = true;
@@ -1602,6 +1606,7 @@ _print_options(void)
 	printf( "-----------------------------\n" );
 	printf( "all         = %s\n", params.all_flag ? "true" : "false");
 	printf( "array       = %s\n", params.array_flag ? "true" : "false");
+	printf( "dependency  = %d\n", params.dependency );
 	printf( "format      = %s\n", params.format );
 	printf( "iterate     = %d\n", params.iterate );
 	printf( "job_flag    = %d\n", params.job_flag );
@@ -1932,6 +1937,7 @@ Usage: squeue [OPTIONS]\n\
   -a, --all                       display jobs in hidden partitions\n\
   -h, --noheader                  no headers on output\n\
       --hide                      do not display jobs in hidden partitions\n\
+  -d, --dependency                print job dependency information.\n\
   -i, --iterate=seconds           specify an interation period\n\
   -j, --job=job(s)                comma separated list of jobs IDs\n\
 				  to view, default is all\n\
