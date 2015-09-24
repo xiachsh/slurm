@@ -97,6 +97,7 @@ temp_kvs_init(void)
 	uint32_t nodeid, num_children, size;
 	Buf buf = NULL;
 
+	debug("******** MNP pid=%d entering temp_kvs_init, kvs_seq=%d", getpid(), kvs_seq);
 	xfree(temp_kvs_buf);
 	temp_kvs_cnt = 0;
 	temp_kvs_size = TEMP_KVS_SIZE_INC;
@@ -105,10 +106,10 @@ temp_kvs_init(void)
 	/* put the tree cmd here to simplify message sending */
 	if (in_stepd()) {
 		cmd = TREE_CMD_KVS_FENCE;
-		info("******** MNP pid=%d in temp_kvs_init, cmd set to TREE_CMD_KVS_FENCE", getpid());
+		debug("******** MNP pid=%d in temp_kvs_init, cmd set to TREE_CMD_KVS_FENCE", getpid());
 	} else {
 		cmd = TREE_CMD_KVS_FENCE_RESP;
-		info("******** MNP pid=%d in temp_kvs_init, cmd set to TREE_CMD_KVS_FENCE_RESP", getpid());
+		debug("******** MNP pid=%d in temp_kvs_init, cmd set to TREE_CMD_KVS_FENCE_RESP", getpid());
 	}
 
 	buf = init_buf(1024);
@@ -136,7 +137,7 @@ temp_kvs_init(void)
 
 	tasks_to_wait = 0;
 	children_to_wait = 0;
-	info("******** MNP pid=%d exiting temp_kvs_init", getpid());
+	debug("******** MNP pid=%d exiting temp_kvs_init", getpid());
 	return SLURM_SUCCESS;
 }
 
@@ -197,6 +198,7 @@ temp_kvs_send(void)
 	hostlist_t hl = NULL;
 	char free_hl = 0;
 
+	debug("******** MNP pid=%d entering temp_kvs_send", getpid());
 	if (! in_stepd()) {	/* srun */
 		hl = hostlist_create(job_info.step_nodelist);
 		free_hl = 1;
@@ -207,6 +209,8 @@ temp_kvs_send(void)
 
 	/* cmd included in temp_kvs_buf */
 	kvs_seq ++; /* expecting new kvs after now */
+
+	debug("******** MNP pid=%d in temp_kvs_send, incremented kvs_seq, kvs_seq=%d", getpid(), kvs_seq);
 
 	while (1) {
 		if (retry == 1) {
@@ -239,7 +243,7 @@ temp_kvs_send(void)
 	if( free_hl ){
 		hostlist_destroy(hl);
 	}
-	info("******** MNP pid=%d exiting temp_kvs_send", getpid());
+	debug("******** MNP pid=%d exiting temp_kvs_send", getpid());
 	return rc;
 }
 
