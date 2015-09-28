@@ -2251,9 +2251,11 @@ static void _add_jobpack_envs(char **member_env, int numpack, int ntasks,
 	env_array_append_fmt(&member_env, "SLURM_NNODES",
 			     "%d", nnodes_pack);
 
-	/* add SLURM_NTASKS to member_env */
-	env_array_append_fmt(&member_env, "SLURM_NTASKS",
-			     "%d", ntasks);
+	if (ntasks) {
+	        /* add SLURM_NTASKS to member_env */
+	        env_array_append_fmt(&member_env, "SLURM_NTASKS",
+				     "%d", ntasks);
+	}
 
         /* add SLURM_PACK_GROUP env */
         packptr = xmalloc(24);
