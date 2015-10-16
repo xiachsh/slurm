@@ -54,6 +54,9 @@ const char	plugin_name[]	= "Preempt by partition priority plugin";
 const char	plugin_type[]	= "preempt/partition_prio";
 const uint32_t	plugin_version	= SLURM_VERSION_NUMBER;
 
+/* Global data */
+static uint64_t debug_flags = 0;
+
 static uint32_t _gen_job_prio(struct job_record *job_ptr);
 static int  _sort_by_prio (void *x, void *y);
 
@@ -62,6 +65,7 @@ static int  _sort_by_prio (void *x, void *y);
 /**************************************************************************/
 extern int init( void )
 {
+	debug_flags = slurm_get_debug_flags();
 	verbose("preempt/partition_prio loaded");
 	return SLURM_SUCCESS;
 }
@@ -122,9 +126,14 @@ extern List find_preemptable_jobs(struct job_record *job_ptr)
 		    (job_ptr->details->expanding_jobid == job_p->job_id))
 			continue;
 
-		if (job_p->pack_leader != 0)
+		if (job_p->pack_leader != 0) {
+			if (debug_flags & DEBUG_FLAG_JOB_PACK) {
+				info("JPCK: pack_member %d can't be preempted "
+				     "by job %d", job_p->job_id,
+				     job_ptr->job_id);
+			}
 			continue; /* Members of job_pack, can't be preempted */
-
+		}
 		/* This job is a preemption candidate */
 		if (preemptee_job_list == NULL) {
 			preemptee_job_list = list_create(NULL);
