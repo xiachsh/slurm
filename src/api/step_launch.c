@@ -780,7 +780,6 @@ void slurm_step_launch_fwd_signal(slurm_step_ctx_t *ctx, int signo)
 	ret_data_info_t *ret_data_info = NULL;
 	int rc = SLURM_SUCCESS;
 	struct step_launch_state *sls = ctx->launch_state;
-
 	debug2("forward signal %d to job %u", signo, ctx->job_id);
 
 	/* common to all tasks */
