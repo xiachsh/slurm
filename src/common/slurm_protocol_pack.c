@@ -10917,6 +10917,7 @@ _pack_launch_tasks_request_msg(launch_tasks_request_msg_t * msg, Buf buffer,
 		pack32(msg->ntasks, buffer);
 		pack32(msg->mpi_jobid, buffer); // MNP PMI
 		pack32(msg->mpi_ntasks, buffer); // MNP PMI
+		pack32(msg->mpi_nnodes, buffer); // MNP PMI
 		pack32(msg->mpi_stepftaskid, buffer); // MNP PMI
 		pack32(msg->uid, buffer);
 		packstr(msg->partition, buffer);
@@ -11211,6 +11212,8 @@ _unpack_launch_tasks_request_msg(launch_tasks_request_msg_t **
 		safe_unpack32(&msg->mpi_jobid, buffer); // MNP PMI
 		safe_unpack32(&msg->mpi_ntasks, buffer); // MNP PMI
 		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_ntasks=%d", msg->mpi_ntasks);
+		safe_unpack32(&msg->mpi_nnodes, buffer); // MNP PMI
+		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_nnodes=%d", msg->mpi_nnodes);
 		safe_unpack32(&msg->mpi_stepftaskid, buffer); // MNP PMI
 		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_stepftaskid=%d", msg->mpi_stepftaskid);
 		safe_unpack32(&msg->uid, buffer);
