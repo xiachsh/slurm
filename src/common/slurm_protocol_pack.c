@@ -8938,6 +8938,7 @@ _pack_job_desc_msg(job_desc_msg_t * job_desc_ptr, Buf buffer,
 			job_desc_ptr->select_jobinfo = NULL;
 		}
 		pack16(job_desc_ptr->wait_all_nodes, buffer);
+		pack8(job_desc_ptr->resv_port, buffer);
 		pack32(job_desc_ptr->bitflags, buffer);
 	} else if (protocol_version >= SLURM_15_08_PROTOCOL_VERSION) {
 		packstr(job_desc_ptr->clusters, buffer);
@@ -9434,6 +9435,7 @@ _unpack_job_desc_msg(job_desc_msg_t ** job_desc_buffer_ptr, Buf buffer,
 		job_desc_ptr->mloaderimage = NULL;
 		job_desc_ptr->ramdiskimage = NULL;
 		safe_unpack16(&job_desc_ptr->wait_all_nodes, buffer);
+		safe_unpack8(&job_desc_ptr->resv_port, buffer);
 		safe_unpack32(&job_desc_ptr->bitflags, buffer);
 	} else if (protocol_version >= SLURM_15_08_PROTOCOL_VERSION) {
 		uint16_t old_nice = 0;

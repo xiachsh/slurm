@@ -315,7 +315,6 @@ int slurm_step_launch (slurm_step_ctx_t *ctx,
 		launch.task_flags |= TASK_PARALLEL_DEBUG;
 
 	launch.tasks_to_launch = ctx->step_resp->step_layout->tasks;
-
 	launch.global_task_ids = ctx->step_resp->step_layout->tids;
 
 	launch.select_jobinfo  = ctx->step_resp->select_jobinfo;
@@ -786,6 +785,7 @@ void slurm_step_launch_fwd_signal(slurm_step_ctx_t *ctx, int signo)
 	ret_data_info_t *ret_data_info = NULL;
 	int rc = SLURM_SUCCESS;
 	struct step_launch_state *sls = ctx->launch_state;
+
 	debug2("forward signal %d to job %u", signo, ctx->job_id);
 
 	/* common to all tasks */
