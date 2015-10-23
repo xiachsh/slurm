@@ -1178,6 +1178,7 @@ extern int create_cluster_tables(mysql_conn_t *mysql_conn, char *cluster_name)
 		{ "nodelist", "text" },
 		{ "nodes_alloc", "int unsigned not null" },
 		{ "node_inx", "text" },
+		{ "packid", "int unsigned default 0 not null"},			/* wjb */
 		{ "partition", "tinytext not null" },
 		{ "priority", "int unsigned not null" },
 		{ "state", "smallint unsigned not null" },
@@ -1268,6 +1269,8 @@ extern int create_cluster_tables(mysql_conn_t *mysql_conn, char *cluster_name)
 		{ "max_disk_write_node", "int unsigned default 0 not null" },
 		{ "ave_disk_write", "double unsigned default 0.0 not null" },
 		{ "tres_alloc", "text not null default ''" },
+		{ "packjobid", "int unsigned default 0 not null"},		/* wjb */
+		{ "packstepid", "int unsigned default 0 not null"},		/* wjb */
 		{ NULL, NULL}
 	};
 

@@ -266,6 +266,7 @@ typedef struct dbd_job_start_msg {
 	char *   nodes;		/* hosts allocated to the job */
 	char *   node_inx;      /* ranged bitmap string of hosts
 				 * allocated to the job */
+	uint32_t pack_leader;	/* pack leader job ID */			/* wjb */
 	char *   partition;	/* partition job is running on */
 	uint32_t priority;	/* job priority */
 	uint32_t qos_id;        /* qos job is running with */
@@ -375,6 +376,7 @@ typedef struct dbd_step_start_msg {
 	time_t   start_time;	/* step start time */
 	time_t   job_submit_time;/* job submit time needed to find job record
 				  * in db */
+	uint32_t packstepid[2];	/* jobid and stepid of srun first step */	/* wjb */
 	uint32_t req_cpufreq_min; /* requested minimum CPU frequency  */
 	uint32_t req_cpufreq_max; /* requested maximum CPU frequency  */
 	uint32_t req_cpufreq_gov; /* requested CPU frequency governor */
