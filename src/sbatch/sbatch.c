@@ -1205,7 +1205,9 @@ static char *_script_donothing(int *size)
 	char *script = NULL;
 
 	xstrcat(script, "#!/bin/sh\n");
-	xstrcat(script, "# This script was created by sbatch -- does nothing.\n\n");
+	xstrcat(script, "# This script was created by sbatch -- does "
+		"nothing.\n\n");
+	xstrcat(script, "#SBATCH -o /dev/null;\n");
 	xstrcat(script, "exit 0;\n");
 	*size = strlen(script);
 
