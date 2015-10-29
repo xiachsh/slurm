@@ -667,6 +667,7 @@ typedef struct {
 	uint32_t jobid;
 	char	*jobname;
 	uint32_t lft;
+	uint32_t packid;							/* wjb */
 	char	*partition;
 	char	*nodes;
 	uint32_t priority;
@@ -901,6 +902,7 @@ typedef struct {
 	uint32_t nnodes;
 	char *nodes;
 	uint32_t ntasks;
+	uint32_t packstepid[2];	/* jobid and stepid of srun first step */	/* wjb */
 	char *pid_str;
 	uint32_t req_cpufreq_min;
 	uint32_t req_cpufreq_max;

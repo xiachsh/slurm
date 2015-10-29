@@ -5127,6 +5127,8 @@ extern void slurmdb_pack_job_rec(void *object, uint16_t rpc_version, Buf buffer)
 		packstr(job->jobname, buffer);
 		pack32(job->lft, buffer);
 		packstr(job->nodes, buffer);
+		pack32(job->packid, buffer);					/* wjb */
+//info("packing job->packid as %u", job->packid);					/* wjb */
 		packstr(job->partition, buffer);
 		pack32(job->priority, buffer);
 		pack32(job->qosid, buffer);
@@ -5346,6 +5348,8 @@ extern int slurmdb_unpack_job_rec(void **job, uint16_t rpc_version, Buf buffer)
 		safe_unpackstr_xmalloc(&job_ptr->jobname, &uint32_tmp, buffer);
 		safe_unpack32(&job_ptr->lft, buffer);
 		safe_unpackstr_xmalloc(&job_ptr->nodes, &uint32_tmp, buffer);
+		safe_unpack32(&job_ptr->packid, buffer);			/* wjb */
+//info("UNpacking job_ptr->packid as %u", job_ptr->packid);			/* wjb */
 		safe_unpackstr_xmalloc(&job_ptr->partition, &uint32_tmp,
 				       buffer);
 		safe_unpack32(&job_ptr->priority, buffer);
@@ -5829,6 +5833,9 @@ extern void slurmdb_pack_step_rec(slurmdb_step_rec_t *step,
 		pack32(step->nnodes, buffer);
 		packstr(step->nodes, buffer);
 		pack32(step->ntasks, buffer);
+		pack32(step->packstepid[0], buffer);				/* wjb */
+		pack32(step->packstepid[1], buffer);				/* wjb */
+//info("packing step->packstepid[2] as %u, %u", step->packstepid[0], step->packstepid[1]);	/* wjb */
 		pack32(step->req_cpufreq_min, buffer);
 		pack32(step->req_cpufreq_max, buffer);
 		pack32(step->req_cpufreq_gov, buffer);
@@ -5894,6 +5901,9 @@ extern int slurmdb_unpack_step_rec(slurmdb_step_rec_t **step,
 		safe_unpack32(&step_ptr->nnodes, buffer);
 		safe_unpackstr_xmalloc(&step_ptr->nodes, &uint32_tmp, buffer);
 		safe_unpack32(&step_ptr->ntasks, buffer);
+		safe_unpack32(&step_ptr->packstepid[0], buffer);			/* wjb */
+		safe_unpack32(&step_ptr->packstepid[1], buffer);			/* wjb */
+//info("UNpacking step->packstepid[2] as %u, %u", step_ptr->packstepid[0], step_ptr->packstepid[1]);					/* wjb */
 		safe_unpack32(&step_ptr->req_cpufreq_min, buffer);
 		safe_unpack32(&step_ptr->req_cpufreq_max, buffer);
 		safe_unpack32(&step_ptr->req_cpufreq_gov, buffer);
