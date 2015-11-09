@@ -44,6 +44,7 @@
 #if HAVE_CONFIG_H
 #  include "config.h"
 #endif
+#include "slurm/slurm.h"
 
 #include "src/common/slurmdb_defs.h"
 
@@ -54,6 +55,7 @@ typedef struct scancel_options {
 	List clusters;          /* --cluster=cluster_name -Mcluster-name */
 	bool full;		/* --full, -f			*/
 	bool interactive;	/* --interactive, -i		*/
+	bool pack_mbr;          /* --pack-member                */
 	char *job_name;		/* --name=n, -nn		*/
 	char *partition;	/* --partition=n, -pn		*/
 	char *qos;		/* --qos=n, -qn			*/

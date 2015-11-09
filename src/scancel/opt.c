@@ -161,6 +161,7 @@ extern bool has_default_opt(void)
 	if (opt.account == NULL
 	    && opt.batch == false
 	    && opt.interactive == false
+	    && opt.pack_mbr == false
 	    && opt.job_name == NULL
 	    && opt.partition == NULL
 	    && opt.qos == NULL
@@ -260,6 +261,7 @@ static void _opt_default(void)
 #endif
 	opt.full	= false;
 	opt.interactive	= false;
+	opt.pack_mbr	= false;
 	opt.job_cnt	= 0;
 	opt.job_list    = NULL;
 	opt.job_name	= NULL;
@@ -384,6 +386,7 @@ static void _opt_args(int argc, char **argv)
 		{"full",	no_argument,       0, 'f'},
 		{"help",        no_argument,       0, OPT_LONG_HELP},
 		{"interactive", no_argument,       0, 'i'},
+		{"pack-member", no_argument,       0, 'm'},
 		{"cluster",     required_argument, 0, 'M'},
 		{"clusters",    required_argument, 0, 'M'},
 		{"jobname",     required_argument, 0, 'n'},
@@ -403,7 +406,7 @@ static void _opt_args(int argc, char **argv)
 		{NULL,          0,                 0, 0}
 	};
 
-	while ((opt_char = getopt_long(argc, argv, "A:bfiM:n:p:Qq:R:s:t:u:vVw:",
+	while ((opt_char = getopt_long(argc, argv, "A:bfimM:n:p:Qq:R:s:t:u:vVw:",
 				       long_options, &option_index)) != -1) {
 		switch (opt_char) {
 		case (int)'?':
@@ -426,6 +429,9 @@ static void _opt_args(int argc, char **argv)
 			break;
 		case (int)'i':
 			opt.interactive = true;
+			break;
+		case (int)'m':
+			opt.pack_mbr = true;
 			break;
 		case (int)'M':
 			opt.ctld = true;
@@ -659,6 +665,7 @@ static void _opt_list(void)
 	info("interactive    : %s", tf_(opt.interactive));
 	info("job_name       : %s", opt.job_name);
 	info("nodelist       : %s", opt.nodelist);
+	info("pack_member    : %s", tf_(opt.pack_mbr));
 	info("partition      : %s", opt.partition);
 	info("qos            : %s", opt.qos);
 	info("reservation    : %s", opt.reservation);
@@ -700,8 +707,8 @@ static void _opt_list(void)
 
 static void _usage(void)
 {
-	printf("Usage: scancel [-A account] [--batch] [--full] [--interactive] [-n job_name]\n");
-	printf("               [-p partition] [-Q] [-q qos] [-R reservation][-s signal | integer]\n");
+	printf("Usage: scancel [-A account] [--batch] [--full] [--interactive] [--member job_id] \n");
+	printf("               [-n job_name] [-p partition] [-Q] [-q qos] [-R reservation][-s signal | integer]\n");
 	printf("               [-t PENDING | RUNNING | SUSPENDED] [--usage] [-u user_name]\n");
 	printf("               [-V] [-v] [-w hosts...] [--wckey=wckey] [job_id[_array_id][.step_id]]\n");
 }
@@ -716,6 +723,7 @@ static void _help(void)
 	printf("  -i, --interactive               require response from user for each job\n");
 	printf("  -n, --name=job_name             act only on jobs with this name\n");
 	printf("  -p, --partition=partition       act only on jobs in this partition\n");
+	printf("  -m  --pack_member               cancel a member of a job_pack\n");
 	printf("  -Q, --quiet                     disable warnings\n");
 	printf("  -q, --qos=qos                   act only on jobs with this quality of service\n");
 	printf("  -R, --reservation=reservation   act only on jobs with this reservation\n");
