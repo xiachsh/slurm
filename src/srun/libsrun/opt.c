@@ -292,7 +292,6 @@ extern void _copy_resp_struct(resource_allocation_response_msg_t *to,
 
 int initialize_and_process_args(int argc, char *argv[])
 {
-
 	/* initialize option defaults */
 	_opt_default();
 
@@ -2813,7 +2812,6 @@ static void _opt_list(void)
 	if (opt.resv_port_cnt != NO_VAL)
 		info("resv_port_cnt     : %d", opt.resv_port_cnt);
 	info("power             : %s", power_flags_str(opt.power_flags));
-	info("sicp              : %u", opt.sicp_mode);
 	info("pack_group        : %s", opt.pack_group);
 	str = print_commandline(opt.argc, opt.argv);
 	info("remote command    : `%s'", str);
