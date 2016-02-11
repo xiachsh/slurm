@@ -763,6 +763,9 @@ typedef struct launch_tasks_request_msg {
 	uint16_t  ntasks_per_core; /* number of tasks to invoke on each core */
 	uint16_t  ntasks_per_socket;/* number of tasks to invoke on
 				     * each socket */
+	uint32_t  mpi_jobid;	/* MPI jobid (same for all steps) */ // MNP PMI
+	uint32_t  mpi_ntasks;	/* number of MPI tasks in all steps */ // MNP PMI
+	uint32_t  mpi_stepftaskid; /* first MPI taskid for this step */ // MNP PMI
 	uint32_t  uid;
 	char     *user_name;
 	uint32_t  gid;

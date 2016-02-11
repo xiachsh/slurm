@@ -10915,6 +10915,9 @@ _pack_launch_tasks_request_msg(launch_tasks_request_msg_t * msg, Buf buffer,
 		pack32(msg->job_id, buffer);
 		pack32(msg->job_step_id, buffer);
 		pack32(msg->ntasks, buffer);
+		pack32(msg->mpi_jobid, buffer); // MNP PMI
+		pack32(msg->mpi_ntasks, buffer); // MNP PMI
+		pack32(msg->mpi_stepftaskid, buffer); // MNP PMI
 		pack32(msg->uid, buffer);
 		packstr(msg->partition, buffer);
 		packstr(msg->user_name, buffer);
@@ -11205,6 +11208,11 @@ _unpack_launch_tasks_request_msg(launch_tasks_request_msg_t **
 		safe_unpack32(&msg->job_id, buffer);
 		safe_unpack32(&msg->job_step_id, buffer);
 		safe_unpack32(&msg->ntasks, buffer);
+		safe_unpack32(&msg->mpi_jobid, buffer); // MNP PMI
+		safe_unpack32(&msg->mpi_ntasks, buffer); // MNP PMI
+		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_ntasks=%d", msg->mpi_ntasks);
+		safe_unpack32(&msg->mpi_stepftaskid, buffer); // MNP PMI
+		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_stepftaskid=%d", msg->mpi_stepftaskid);
 		safe_unpack32(&msg->uid, buffer);
 		safe_unpackstr_xmalloc(&msg->partition, &uint32_tmp, buffer);
 		safe_unpackstr_xmalloc(&msg->user_name, &uint32_tmp, buffer);

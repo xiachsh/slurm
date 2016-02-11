@@ -151,6 +151,7 @@ done:
 
 int mpi_hook_slurmstepd_init (char ***env)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_slurmstepd_init", getpid());
 	char *mpi_type = getenvp (*env, "SLURM_MPI_TYPE");
 
 	debug("mpi type = %s", mpi_type);
@@ -160,46 +161,56 @@ int mpi_hook_slurmstepd_init (char ***env)
 
 	unsetenvp (*env, "SLURM_MPI_TYPE");
 
+	debug("******** MNP pid=%d, exiting mpi_hook_slurmstepd_init", getpid());
 	return SLURM_SUCCESS;
 }
 
 int mpi_hook_slurmstepd_prefork (const stepd_step_rec_t *job, char ***env)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_slurmstepd_prefork, job->jobid=%d", getpid(), job->jobid);
 	if (mpi_hook_slurmstepd_init(env) == SLURM_ERROR)
 		return SLURM_ERROR;
-
+	debug("******** MNP pid=%d, exiting mpi_hook_slurmstepd_prefork", getpid());
 	return (*(ops.slurmstepd_prefork))(job, env);
 }
 
 int mpi_hook_slurmstepd_task (const mpi_plugin_task_info_t *job, char ***env)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_slurmstepd_task", getpid());
+	debug("******** MNP pid=%d, in mpi_hook_slurmstepd_task, job->jobid=%d", getpid(),job->jobid);
+	debug("******** MNP pid=%d, in mpi_hook_slurmstepd_task, job->gtaskid=%d", getpid(),job->gtaskid);
+	debug("******** MNP pid=%d, in mpi_hook_slurmstepd_task, job->ltaskid=%d", getpid(),job->ltaskid);
 	if (mpi_hook_slurmstepd_init(env) == SLURM_ERROR)
 		return SLURM_ERROR;
-
+	debug("******** MNP pid=%d, exiting mpi_hook_slurmstepd_task", getpid());
 	return (*(ops.slurmstepd_init))(job, env);
 }
 
 int mpi_hook_client_init (char *mpi_type)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_client_init", getpid());
 	debug("mpi type = %s", mpi_type);
 
 	if (_mpi_init(mpi_type) == SLURM_ERROR)
 		return SLURM_ERROR;
-
+	debug("******** MNP pid=%d, exiting mpi_hook_client_init", getpid());
 	return SLURM_SUCCESS;
 }
 
 mpi_plugin_client_state_t *
 mpi_hook_client_prelaunch(const mpi_plugin_client_info_t *job, char ***env)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_client_prelaunch, job->jobid=%d", getpid(), job->jobid);
 	if (_mpi_init(NULL) < 0)
 		return NULL;
 
+	debug("******** MNP pid=%d, exiting mpi_hook_client_prelaunch", getpid());
 	return (*(ops.client_prelaunch))(job, env);
 }
 
 bool mpi_hook_client_single_task_per_node (void)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_client_single_task_per_node", getpid());
 	if (_mpi_init(NULL) < 0)
 		return SLURM_ERROR;
 #if defined HAVE_BGQ
@@ -209,15 +220,18 @@ bool mpi_hook_client_single_task_per_node (void)
 	*/
 	return true;
 #else
+	debug("******** MNP pid=%d, exiting mpi_hook_client_single_task_per_node", getpid());
 	return (*(ops.client_single_task))();
 #endif
 }
 
 int mpi_hook_client_fini (mpi_plugin_client_state_t *state)
 {
+	debug("******** MNP pid=%d, entering mpi_hook_client_fini", getpid());
 	if (_mpi_init(NULL) < 0)
 		return SLURM_ERROR;
 
+	debug("******** MNP pid=%d, exiting mpi_hook_client_fini", getpid());
 	return (*(ops.client_fini))(state);
 }
 

@@ -50,6 +50,7 @@
 #include "src/common/read_config.h"
 #include "src/common/xmalloc.h"
 #include "src/common/xstring.h"
+//#include "src/srun/libsrun/opt.h" // MNP PMI
 
 /*
 ** Define slurm-specific aliases for use by plugins, see slurm_xlator.h
@@ -198,7 +199,6 @@ slurm_step_layout_t *fake_slurm_step_layout_create(
 						       step_layout->tasks[i]);
 			step_layout->mpi_tids[i] = xmalloc(sizeof(uint32_t) *
 						       step_layout->tasks[i]); // MNP PMI
-
 			for (j = 0; j < step_layout->tasks[i]; j++) {
 				step_layout->tids[i][j] =
 					step_layout->task_cnt++;
@@ -298,6 +298,9 @@ extern void pack_slurm_step_layout(slurm_step_layout_t *step_layout,
 			pack32_array(step_layout->tids[i],
 				     step_layout->tasks[i],
 				     buffer);
+			pack32_array(step_layout->mpi_tids[i],
+				     step_layout->tasks[i],
+				     buffer); // MNP PMI
 		}
 	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
 		uint16_t old_task_dist;
@@ -359,10 +362,15 @@ extern int unpack_slurm_step_layout(slurm_step_layout_t **layout, Buf buffer,
 			xmalloc(sizeof(uint32_t) * step_layout->node_cnt);
 		step_layout->tids = xmalloc(sizeof(uint32_t *)
 					    * step_layout->node_cnt);
+		step_layout->mpi_tids = xmalloc(sizeof(uint32_t *)
+					    * step_layout->node_cnt); // MNP PMI
 		for (i = 0; i < step_layout->node_cnt; i++) {
 			safe_unpack32_array(&(step_layout->tids[i]),
 					    &num_tids,
 					    buffer);
+			safe_unpack32_array(&(step_layout->mpi_tids[i]),
+					    &num_tids,
+					    buffer); // MNP PMI
 			step_layout->tasks[i] = num_tids;
 		}
 	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
@@ -465,7 +473,8 @@ static int _init_task_layout(slurm_step_layout_t *step_layout,
 	int cpu_cnt = 0, cpu_inx = 0, i;
 	uint32_t cluster_flags = slurmdb_setup_cluster_flags();
 	debug("!!!!!!!! MNP pid=%d entering _init_task_layout", getpid());
-/* 	char *name = NULL; */
+
+/*	char *name = NULL; */
 	uint16_t cpus[step_layout->node_cnt];
 
 	if (step_layout->node_cnt == 0)
@@ -502,14 +511,14 @@ static int _init_task_layout(slurm_step_layout_t *step_layout,
 	}
 
 	for (i=0; i<step_layout->node_cnt; i++) {
-/* 		name = hostlist_shift(hl); */
-/* 		if (!name) { */
-/* 			error("hostlist incomplete for this job request"); */
-/* 			hostlist_destroy(hl); */
-/* 			return SLURM_ERROR; */
-/* 		} */
-/* 		debug2("host %d = %s", i, name); */
-/* 		free(name); */
+/*		name = hostlist_shift(hl); */
+/*		if (!name) { */
+/*			error("hostlist incomplete for this job request"); */
+/*			hostlist_destroy(hl); */
+/*			return SLURM_ERROR; */
+/*		} */
+/*		debug2("host %d = %s", i, name); */
+/*		free(name); */
 		cpus[i] = (cpus_per_node[cpu_inx] / cpus_per_task);
 		if (cpus[i] == 0) {
 			/* this can be a result of a heterogeneous allocation
@@ -543,14 +552,13 @@ static int _init_task_layout(slurm_step_layout_t *step_layout,
             ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC_CYCLIC) ||
             ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC_CFULL) ||
             ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_CYCLIC_BLOCK)) */  //nlk merge issue
-
-        if ((task_dist & SLURM_DIST_NODEMASK) == SLURM_DIST_NODECYCLIC)
+	if ((task_dist & SLURM_DIST_NODEMASK) == SLURM_DIST_NODECYCLIC)
 		return _task_layout_cyclic(step_layout, cpus);
 	else if (((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_ARBITRARY) &&
 		!(cluster_flags & CLUSTER_FLAG_FE))
 		return _task_layout_hostfile(step_layout, arbitrary_nodes);
-        else if ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_PLANE)
-                return _task_layout_plane(step_layout, cpus);
+	else if ((task_dist & SLURM_DIST_STATE_BASE) == SLURM_DIST_PLANE)
+		return _task_layout_plane(step_layout, cpus);
 	else
 		return _task_layout_block(step_layout, cpus, task_dist,
 					  cpus_per_task);
@@ -672,7 +680,7 @@ static int _task_layout_block(slurm_step_layout_t *step_layout, uint16_t *cpus,
 		for (i = 0; ((i < step_layout->node_cnt) &&
 			     (task_id < step_layout->task_cnt)); i++) {
 			while (((step_layout->tasks[i] * cpus_per_task) <
-			        cpus[i]) &&
+				cpus[i]) &&
 			       (task_id < step_layout->task_cnt)) {
 				step_layout->tasks[i]++;
 				task_id++;
@@ -753,7 +761,6 @@ static int _task_layout_cyclic(slurm_step_layout_t *step_layout,
 					 * (step_layout->tasks[i] + 1));
 				xrealloc(step_layout->mpi_tids[i], sizeof(uint32_t)
 					 * (step_layout->tasks[i] + 1)); // MNP PMI
-
 				step_layout->tids[i][step_layout->tasks[i]] =
 					taskid;
 				debug("!!!!!!!! MNP in _task_layout_cyclic, step_layout->tids[%d][step_layout->tasks[%d]]=%d",i,i,taskid );
