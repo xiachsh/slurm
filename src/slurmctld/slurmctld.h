@@ -547,7 +547,6 @@ struct job_details {
 	uint32_t task_dist;		/* task layout for this job. Only
 					 * useful when Consumable Resources
 					 * is enabled */
-	char *pack_group;		/* group of tasks in job pack */
 	uint32_t usable_nodes;		/* node count needed by preemption */
 	uint8_t whole_node;		/* 1: --exclusive
 					 * 2: --exclusive=user
@@ -691,6 +690,8 @@ struct job_record {
 					 * for this job, used to insure
 					 * epilog is not re-run for job */
 	uint16_t other_port;		/* port for client communications */
+	uint32_t pack_leader;		/* job_id of pack_leader for job_pack
+	                                 * or 0 */
 	char *partition;		/* name of job partition(s) */
 	List part_ptr_list;		/* list of pointers to partition recs */
 	bool part_nodes_missing;	/* set if job's nodes removed from this
@@ -807,7 +808,6 @@ struct	depend_spec {
 	uint16_t	depend_flags;	/* SLURM_FLAGS_* type */
 	uint32_t	job_id;		/* SLURM job_id */
 	struct job_record *job_ptr;	/* pointer to this job */
-	uint32_t	pack_leader;    /* SLURM job_id of packleader job */
 	uint16_t	alloc;		/* Member is allocated */
 	time_t          submit_time;    /* time pack member submitted */
 };

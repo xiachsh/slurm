@@ -970,6 +970,10 @@ slurm_sprint_job_info ( job_info_t * job_ptr, int one_liner )
 
 	/****** Line 38 (optional) ******/
 	if (job_ptr->bitflags) {
+		if (one_liner)
+			xstrcat(out, " ");
+		else
+			xstrcat(out, "\n   ");
 		if (job_ptr->bitflags & KILL_INV_DEP) {
 			snprintf(tmp_line,
 				 sizeof(tmp_line),
@@ -980,16 +984,6 @@ slurm_sprint_job_info ( job_info_t * job_ptr, int one_liner )
 				 sizeof(tmp_line),
 				 "KillOInInvalidDependent=No");
 		}
-		xstrcat(out, tmp_line);
-	}
-	/****** Line 38 (optional) ******/
-	if (job_ptr->pack_group) {
-		if (one_liner)
-			xstrcat(out, " ");
-		else
-			xstrcat(out, "\n   ");
-		snprintf(tmp_line, sizeof(tmp_line), "pack-group=%s",
-			 job_ptr->pack_group);
 		xstrcat(out, tmp_line);
 	}
 
