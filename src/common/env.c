@@ -1159,6 +1159,9 @@ env_array_for_batch_job(char ***dest, const batch_job_launch_msg_t *batch,
 	uint32_t task_dist;
 	uint32_t cluster_flags = slurmdb_setup_cluster_flags();
 
+	uint32_t group_number = -1;
+	char *newenv = NULL;
+
 	info("DHP env_array_for_batch_job");
 	_setup_particulars(cluster_flags, dest, batch->select_jobinfo);
 
@@ -1225,9 +1228,13 @@ env_array_for_batch_job(char ***dest, const batch_job_launch_msg_t *batch,
 	xfree(tmp);
 	xfree(newenv);
 
-	env_array_overwrite_fmt(dest, "ENVIRONMENT", "BATCH");
-	if (node_name)
-		env_array_overwrite_fmt(dest, "HOSTNAME", "%s", node_name);
+	if (group_number < 1) {
+	        env_array_overwrite_fmt(dest, "ENVIRONMENT", "BATCH");
+		if (node_name)
+		        env_array_overwrite_fmt(dest, "HOSTNAME", "%s",
+						node_name);
+
+	}
 
 	/* OBSOLETE, but needed by MPI, do not remove */
 
@@ -1701,7 +1708,6 @@ void env_array_set_environment(char **env_array, int group_number)
 						      value, ENV_BUFSIZE)) {
 			  sprintf(str, "%s_PACK_GROUP_%d=%s", name,
 				  group_number, value);
-				info("DHP env_array_set_environment: str = %s", str);
 				_env_array_putenv(str);
 			}
 		}
@@ -2261,4 +2267,16 @@ char *env_jobpack(const char *envname, uint32_t group_number)
 		sprintf(newenv, "%s_PACK_GROUP_%d", envname, group_number);
 	}
 	return (newenv);
+}
+
+
+extern void env_array_for_packenv(char ***dest, char *name, char *value)
+{
+
+	if (dest == NULL)
+		return;
+
+	setenv(name, value, 1);
+		//	env_array_append(dest, name, value);
+
 }
