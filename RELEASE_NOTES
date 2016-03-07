@@ -44,6 +44,11 @@ HIGHLIGHTS
  -- Add an "scontrol top <jobid>" command to re-order the priorities of a user's
     pending jobs. May be disabled with the "disable_user_top" option in the
     SchedulerParameters configuration parameter.
+ -- Added support for co-scheduling of jobs, also referred to as Job Packs or
+    Heterogeneous Resources. This functionality provides the capability to
+    schedule multiple job allocations so they can run in parallel to run a
+    common application. (Refer to job_packs.html for an overview of this
+    functionality.)
 
 RPMBUILD CHANGES
 ================

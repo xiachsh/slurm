@@ -109,7 +109,7 @@ extern uint32_t job_index;
 extern bool packjob;
 extern bool packleader;
 
-static int shepard_fd = -1;
+//static int shepard_fd = -1;
 static pthread_t signal_thread = (pthread_t) 0;
 static int pty_sigarray[] = { SIGWINCH, 0 };
 
@@ -572,7 +572,6 @@ extern void create_srun_job(srun_job_t **p_job, bool *got_alloc,
 	/* now global "opt" should be filled in and available,
 	 * create a job from opt
 	 */
-
 	if (opt.test_only) {
 		int rc = allocate_test();
 		if (rc) {
@@ -724,7 +723,8 @@ extern void create_srun_job(srun_job_t **p_job, bool *got_alloc,
 		 * Spawn process to insure clean-up of job and/or step
 		 * on abnormal termination
 		 */
-		shepard_fd = _shepard_spawn(job, *got_alloc);
+		opt.shepard_fd = -1;
+		opt.shepard_fd = _shepard_spawn(job, *got_alloc);
 	}
 
 	*p_job = job;
@@ -1002,7 +1002,7 @@ extern void fini_srun(srun_job_t *job, bool got_alloc, uint32_t *global_rc,
 		else
 			slurm_complete_job(job->jobid, *global_rc);
 	}
-	_shepard_notify(shepard_fd);
+	_shepard_notify(opt.shepard_fd);
 
 cleanup:
 	if (signal_thread) {
@@ -1817,6 +1817,6 @@ static int _validate_relative(resource_allocation_response_msg_t *resp)
 
 static void _call_spank_fini(void)
 {
-	if (-1 != shepard_fd)
+	if (-1 != opt.shepard_fd)
 		spank_fini(NULL);
 }

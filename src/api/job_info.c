@@ -959,32 +959,16 @@ slurm_sprint_job_info ( job_info_t * job_ptr, int one_liner )
 	}
 
 	/****** Line 37 ******/
-	if (one_liner)
-		xstrcat(out, " ");
-	else
-		xstrcat(out, "\n   ");
-	snprintf(tmp_line, sizeof(tmp_line),
-		 "Power=%s",
-		 power_flags_str(job_ptr->power_flags));
-	xstrcat(out, tmp_line);
+	xstrcat(out, line_end);
+	xstrfmtcat(out, "Power=%s", power_flags_str(job_ptr->power_flags));
 
 	/****** Line 38 (optional) ******/
 	if (job_ptr->bitflags) {
-		if (one_liner)
-			xstrcat(out, " ");
-		else
-			xstrcat(out, "\n   ");
-		if (job_ptr->bitflags & KILL_INV_DEP) {
-			snprintf(tmp_line,
-				 sizeof(tmp_line),
-				 "KillOInInvalidDependent=Yes");
-		}
-		if (job_ptr->bitflags & NO_KILL_INV_DEP) {
-			snprintf(tmp_line,
-				 sizeof(tmp_line),
-				 "KillOInInvalidDependent=No");
-		}
-		xstrcat(out, tmp_line);
+		xstrcat(out, line_end);
+		if (job_ptr->bitflags & KILL_INV_DEP)
+			xstrcat(out, "KillOInInvalidDependent=Yes");
+		if (job_ptr->bitflags & NO_KILL_INV_DEP)
+			xstrcat(out, "KillOInInvalidDependent=No");
 	}
 
 	/****** END OF JOB RECORD ******/
