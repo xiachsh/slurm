@@ -219,13 +219,13 @@
 #define LONG_OPT_DEADLINE        0x166
 #define LONG_OPT_TASK_GROUP      0x167
 
+
 extern char **environ;
-extern bool packjob;
-extern bool packleader;
 
 /*---- global variables, defined in opt.h ----*/
 int _verbose;
 opt_t opt;
+int mpi_curtaskid; // MNP PMI
 int error_exit = 1;
 int immediate_exit = 1;
 char *mpi_type = NULL;
@@ -248,9 +248,6 @@ static void _opt_default(void);
 
 /* set options based upon env vars  */
 static void _opt_env(void);
-
-/* set options based upon pack_group env vars  */
-static void _opt_env_pack(void);
 
 /* set options based upon pack_group env vars  */
 static void _opt_env_pack(uint32_t group_number);
@@ -294,6 +291,7 @@ extern void _copy_resp_struct(resource_allocation_response_msg_t *to,
 
 int initialize_and_process_args(int argc, char *argv[])
 {
+
 	/* initialize option defaults */
 	_opt_default();
 
@@ -302,17 +300,6 @@ int initialize_and_process_args(int argc, char *argv[])
 
 	/* initialize options with argv */
 	_opt_args(argc, argv);
-
-	if (opt.pack_group) {
-		/* re-initialize options with pack_group env vars;
-		NOTE: not doing this in _opt_env above because opt.pack_group
-		is not known until _opt_args is called and opt.pack_group is
-		required for processing pack_group ENV vars.  If _opt_env can
-		be moved to follow _opt_args then we can put the pack_group
-		env code in _opt_env - but not yet sure if that is possible */
-		_opt_env_pack();
-	}
-
 
 	if (!_opt_verify())
 		exit(error_exit);
@@ -808,7 +795,7 @@ _process_env_var(env_vars_t *e, const char *val)
 		*((char **) e->arg) = xstrdup(val);
 		break;
 	case OPT_INT:
-		if (val[0] != '\0') {
+		if (val != NULL) {
 			*((int *) e->arg) = (int) strtol(val, &end, 10);
 			if (!(end && *end == '\0')) {
 				error("%s=%s invalid. ignoring...",
@@ -884,12 +871,11 @@ _process_env_var(env_vars_t *e, const char *val)
 			opt.shared = JOB_SHARED_USER;
 		} else if (!xstrcasecmp(val, "mcs")) {
 			opt.shared = JOB_SHARED_MCS;
+*/
 		} else {
 			error("\"%s=%s\" -- invalid value, ignoring...",
 			      e->var, val);
 		}
-		opt.exclusive = true;   //nlk
-		opt.shared = 0;  //nlk
 		break;
 
 	case OPT_EXPORT:
@@ -2809,8 +2795,6 @@ static void _opt_list(void)
 	info("ntasks-per-socket : %d", opt.ntasks_per_socket);
 	info("ntasks-per-core   : %d", opt.ntasks_per_core);
 	info("plane_size        : %u", opt.plane_size);
-	info("pack_group        : %s", opt.pack_group);
-
 	if (opt.core_spec == (uint16_t) NO_VAL)
 		info("core-spec         : NA");
 	else if (opt.core_spec & CORE_SPEC_THREAD) {
@@ -2821,6 +2805,8 @@ static void _opt_list(void)
 	if (opt.resv_port_cnt != NO_VAL)
 		info("resv_port_cnt     : %d", opt.resv_port_cnt);
 	info("power             : %s", power_flags_str(opt.power_flags));
+	info("sicp              : %u", opt.sicp_mode);
+	info("pack_group        : %s", opt.pack_group);
 	str = print_commandline(opt.argc, opt.argv);
 	info("remote command    : `%s'", str);
 	if (opt.mcs_label)

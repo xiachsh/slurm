@@ -1634,7 +1634,7 @@ proc test_front_end { } {
 #
 # Proc: test_multiple_slurmd
 #
-# Returns 1 if running multiple slurmd per node
+# Returns 1 if running multple slurmd per node
 #
 ################################################################
 
@@ -1949,37 +1949,6 @@ proc test_emulated { } {
 
 ################################################################
 #
-# Proc: test_killonbadexit
-#
-# Purpose: Determine if KillOnBadExit is configured to be 1.
-#
-#
-# Returns 1 if KillOnBadExit is 1.
-#
-################################################################
-
-proc test_killonbadexit { } {
-	global scontrol bin_bash bin_grep
-
-	log_user 0
-	set killonbadexit 0
-	spawn -noecho $bin_bash -c "exec $scontrol show config | $bin_grep KillOnBadExit"
-	expect {
-		-re "KillOnBadExit *= *1" {
-			set killonbadexit 1
-			exp_continue
-		}
-		eof {
-			wait
-		}
-	}
-	log_user 1
-
-	return $killonbadexit
-}
-
-################################################################
-#
 # Proc: get_cycle_count
 #
 # Purpose: For tests with iteration counts (e.g. test9.1, test9.2)
@@ -2037,7 +2006,7 @@ proc test_select_type { } {
 #
 # Purpose: Determine SelectTypeParameters being used
 #
-# Returns 1 if "type" (input) is found, 0 otherwise
+# Returns value of SelectTypeParameters
 #
 ################################################################
 
@@ -2505,7 +2474,7 @@ proc is_super_user { } {
 #
 ################################################################
 proc check_acct_associations { } {
-	global sacctmgr number alpha_numeric_under exit_code
+	global sacctmgr number alpha_numeric_under
 
 	set rc 1
 	log_user 0
@@ -2609,40 +2578,8 @@ proc get_job_acct_freq { } {
 
 	log_user 1
 	return $freq_val
-}
 
-################################################################
-#
-# Proc: get_job_acct_type
-#
-# Purpose: gets the value of JobAcctGatherType
-#
-# Returns: JobAcctGatherType value
-#
-################################################################
-proc get_job_acct_type { } {
-	global scontrol alpha
 
-	log_user 0
-	set gather_type "none"
-
-	spawn $scontrol show config
-	expect {
-		-re "JobAcctGatherType *= jobacct_gather/($alpha)" {
-			set gather_type $expect_out(1,string)
-			exp_continue
-		}
-		-re "JobAcctGatherType *= ($alpha)" {
-			set gather_type $expect_out(1,string)
-			exp_continue
-		}
-		eof {
-			wait
-		}
-	}
-
-	log_user 1
-	return $gather_type
 }
 
 ################################################################
@@ -2655,7 +2592,7 @@ proc get_job_acct_type { } {
 #
 ################################################################
 proc check_accounting_admin_level { } {
-	global sacctmgr alpha alpha_numeric_under bin_id exit_code
+	global sacctmgr alpha alpha_numeric_under bin_id
 
 	set admin_level ""
 	set user_name ""
@@ -2711,7 +2648,7 @@ proc check_accounting_admin_level { } {
 #
 ################################################################
 proc get_cluster_name { } {
-	global scontrol alpha_numeric_under exit_code
+	global scontrol alpha_numeric_under
 	#
 	# Use scontrol to find the cluster name
 	#
@@ -2784,7 +2721,7 @@ proc get_control_machine { } {
 ################################################################
 
 proc get_bluegene_layout { } {
-	global scontrol alpha_numeric_under exit_code
+	global scontrol alpha_numeric_under
 
 	log_user 0
 	set layout 0
@@ -2819,7 +2756,7 @@ proc get_bluegene_layout { } {
 ################################################################
 
 proc get_bluegene_psets { } {
-	global scontrol number exit_code
+	global scontrol number
 
 	log_user 0
 	set psets 0
@@ -2857,7 +2794,7 @@ proc get_bluegene_psets { } {
 ################################################################
 
 proc get_bluegene_type { } {
-	global scontrol alpha exit_code
+	global scontrol alpha
 
 	log_user 0
 	set type 0
@@ -2892,7 +2829,7 @@ proc get_bluegene_type { } {
 ################################################################
 
 proc get_bluegene_procs_per_cnode { } {
-	global scontrol number exit_code
+	global scontrol number
 
 	log_user 0
 	set cpu_cnt 0
@@ -2927,7 +2864,7 @@ proc get_bluegene_procs_per_cnode { } {
 ################################################################
 
 proc get_bluegene_cnodes_per_mp { } {
-	global scontrol number exit_code
+	global scontrol number
 
 	log_user 0
 	set node_cnt 1
@@ -2962,7 +2899,7 @@ proc get_bluegene_cnodes_per_mp { } {
 ################################################################
 
 proc get_bluegene_allow_sub_blocks { } {
-	global scontrol alpha exit_code
+	global scontrol alpha
 
 	log_user 0
 	set type 0
@@ -2997,7 +2934,7 @@ proc get_bluegene_allow_sub_blocks { } {
 ################################################################
 
 proc get_node_cnt { } {
-	global scontrol exit_code
+	global scontrol
 
 	log_user 0
 	set node_cnt 0
@@ -3034,7 +2971,7 @@ proc get_node_cnt { } {
 proc get_node_cnt_in_part { partition } {
 	global scontrol number
 
-	log_user 0
+#	log_user 0
 	set node_cnt 0
 	set scon_pid [spawn -noecho $scontrol show partition $partition]
 	expect {
@@ -3051,7 +2988,7 @@ proc get_node_cnt_in_part { partition } {
 		eof {
 		}
 	}
-	log_user 1
+#	log_user 1
 
 	return $node_cnt
 }
@@ -3151,12 +3088,12 @@ proc print_success { test_id } {
 proc change_subbp_state { node ionodes state } {
 	global scontrol smap
 
-	set return_code 0
+	set exit_code 0
 
 	set my_pid [spawn $scontrol update subbpname=$node\[$ionodes\] state=$state]
 	expect {
 		-re "slurm_update error:" {
-			set return_code 1
+			set exit_code 1
 			exp_continue
 		}
 		-re "Unable to contact" {
@@ -3166,15 +3103,15 @@ proc change_subbp_state { node ionodes state } {
 		timeout {
 			send_user "\nFAILURE: scontrol not responding\n"
 			slow_kill $my_pid
-			set return_code 1
+			set exit_code 1
 		}
 		eof {
 			wait
 		}
 	}
 
-	if { $return_code } {
-		return $return_code
+	if { $exit_code } {
+		return $exit_code
 	}
 
 	set match 0
@@ -3195,7 +3132,7 @@ proc change_subbp_state { node ionodes state } {
 		timeout {
 			send_user "\nFAILURE: smap not responding\n"
 			slow_kill $my_pid
-			set return_code 1
+			set exit_code 1
 		}
 		eof {
 			wait
@@ -3204,10 +3141,10 @@ proc change_subbp_state { node ionodes state } {
 
 	if {$match != 2} {
 		send_user "\nFAILURE: Subbp did not go into $state state. $match\n"
-		set return_code 1
+		set exit_code 1
 	}
 
-	return $return_code
+	return $exit_code
 }
 
 ################################################################
@@ -3364,7 +3301,7 @@ proc check_node_mem { } {
 #
 ################################################################
 proc get_fs_damping_factor { } {
-	global scontrol number exit_code
+	global scontrol number
 
 	log_user 0
 	set damp 1
@@ -3400,7 +3337,7 @@ proc get_fs_damping_factor { } {
 ################################################################
 
 proc slurmctld_plug_stack_nonstop { } {
-	global scontrol alpha_numeric_comma exit_code
+	global scontrol alpha_numeric_comma
 
 	log_user 0
 	set nonstop_enforce 0
@@ -3437,7 +3374,7 @@ proc slurmctld_plug_stack_nonstop { } {
 ################################################################
 
 proc job_submit_all_partitions { } {
-	global scontrol alpha_numeric_comma exit_code
+	global scontrol alpha_numeric_comma
 
 	log_user 0
 	set all_partitions 0
