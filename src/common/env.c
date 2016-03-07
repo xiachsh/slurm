@@ -1096,6 +1096,8 @@ env_array_for_job(char ***dest, const resource_allocation_response_msg_t *alloc,
 
 	if (alloc->env_size) {	/* Used to set Burst Buffer environment */
 		for (i = 0; i < alloc->env_size; i++) {
+		        if (strstr(alloc->environment[i],
+				   "SLURM_RESV_PORTS_PACK_GROUP_")) continue;
 			tmp = xstrdup(alloc->environment[i]);
 			key = tmp;
 			value = strchr(tmp, '=');
@@ -1342,13 +1344,6 @@ env_array_for_batch_job(char ***dest, const batch_job_launch_msg_t *batch,
 		xfree(newenv);
 	}
 
-	if (batch->resv_ports) {
-	        newenv = env_jobpack("SLURM_RESV_PORTS", group_number);
-		env_array_overwrite_fmt(dest, newenv, "%s", batch->resv_ports);
-		xfree(newenv);
-		env_array_append(dest, "SLURM_BATCH_RESV_PORTS", "1");
-	}
-
 	return SLURM_SUCCESS;
 }
 
@@ -1387,7 +1382,8 @@ env_array_for_step(char ***dest,
 		   uint16_t launcher_port,
 		   bool preserve_env)
 {
-	char *tmp, *tpn;
+        char *tmp, *tpn;
+	//        char *val;
 	uint32_t node_cnt = step->step_layout->node_cnt;
 	uint32_t cluster_flags = slurmdb_setup_cluster_flags();
 	int jobpack_flag = 0;
@@ -1428,6 +1424,7 @@ env_array_for_step(char ***dest,
 	env_array_overwrite_fmt(dest, "SLURM_STEP_TASKS_PER_NODE", "%s", tpn);
 	env_array_overwrite_fmt(dest, "SLURM_STEP_LAUNCHER_PORT",
 				"%hu", launcher_port);
+
 	if (step->resv_ports) {
 		env_array_overwrite_fmt(dest, "SLURM_STEP_RESV_PORTS",
 					"%s", step->resv_ports);

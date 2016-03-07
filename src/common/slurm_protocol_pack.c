@@ -9103,6 +9103,7 @@ _pack_job_desc_msg(job_desc_msg_t * job_desc_ptr, Buf buffer,
 		pack16(job_desc_ptr->wait_all_nodes, buffer);
 		pack8(job_desc_ptr->resv_port, buffer);
 		pack32(job_desc_ptr->bitflags, buffer);
+		pack32(job_desc_ptr->group_number, buffer);
 	} else if (protocol_version >= SLURM_14_11_PROTOCOL_VERSION) {
 		uint16_t old_task_dist;
 		pack16(job_desc_ptr->contiguous, buffer);
@@ -9596,6 +9597,7 @@ _unpack_job_desc_msg(job_desc_msg_t ** job_desc_buffer_ptr, Buf buffer,
 		safe_unpack16(&job_desc_ptr->wait_all_nodes, buffer);
 		safe_unpack8(&job_desc_ptr->resv_port, buffer);
 		safe_unpack32(&job_desc_ptr->bitflags, buffer);
+		safe_unpack32(&job_desc_ptr->group_number, buffer);
 	} else if (protocol_version >= SLURM_14_11_PROTOCOL_VERSION) {
 		uint16_t old_nice = 0;
 		uint16_t old_task_dist = 0;

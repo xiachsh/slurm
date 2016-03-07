@@ -182,6 +182,7 @@
 #define LONG_OPT_THREAD_SPEC     0x163
 #define LONG_OPT_MCS_LABEL       0x165
 #define LONG_OPT_DEADLINE        0x166
+#define LONG_OPT_RESV_PORT       0x164
 
 
 /*---- global variables, defined in opt.h ----*/
@@ -411,6 +412,7 @@ static void _opt_default()
 
 	opt.nice = NO_VAL;
 	opt.priority = 0;
+	opt.resv_port_flag  = false;
 }
 
 /*---[ env var processing ]-----------------------------------------------*/
@@ -763,6 +765,7 @@ void set_options(const int argc, char **argv)
 		{"uid",           required_argument, 0, LONG_OPT_UID},
 		{"wait-all-nodes",required_argument, 0, LONG_OPT_WAIT_ALL_NODES},
 		{"wckey",         required_argument, 0, LONG_OPT_WCKEY},
+		{"resv-port",     no_argument, 0, LONG_OPT_RESV_PORT},
 		{NULL,            0,                 0, 0}
 	};
 	char *opt_string =
@@ -1307,6 +1310,9 @@ void set_options(const int argc, char **argv)
 		case LONG_OPT_THREAD_SPEC:
 			opt.core_spec = parse_int("thread_spec", optarg, true) |
 				CORE_SPEC_THREAD;
+			break;
+		case LONG_OPT_RESV_PORT:
+			opt.resv_port_flag = true;
 			break;
 		default:
 			if (spank_process_option(opt_char, optarg) < 0) {
