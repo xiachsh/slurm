@@ -832,6 +832,8 @@ typedef struct launch_tasks_request_msg {
 	char *restart_dir;	/* restart from checkpoint if set */
 	char **spank_job_env;
 	uint32_t spank_job_env_size;
+	char **pelog_env;
+	uint32_t pelog_env_size;
 	dynamic_plugin_data_t *select_jobinfo; /* select context, opaque data */
 	char *alias_list;	/* node name/address/hostnamne aliases */
 	char *partition;	/* partition that job is running in */
@@ -898,6 +900,8 @@ typedef struct kill_job_msg {
 	dynamic_plugin_data_t *select_jobinfo;	/* opaque data type */
 	char **spank_job_env;
 	uint32_t spank_job_env_size;
+	char **pelog_env;
+	uint32_t pelog_env_size;
 } kill_job_msg_t;
 
 typedef struct signal_job_msg {
@@ -943,6 +947,8 @@ typedef struct prolog_launch_msg {
 	dynamic_plugin_data_t *select_jobinfo;	/* opaque data type */
 	char **spank_job_env;		/* SPANK job environment variables */
 	uint32_t spank_job_env_size;	/* size of spank_job_env */
+	char **pelog_env;		/* any other job environment vars */
+	uint32_t pelog_env_size;	/* size of any other env vars */
 	char *std_err;			/* pathname of stderr */
 	char *std_out;			/* pathname of stdout */
 	uint32_t uid;
@@ -1007,6 +1013,8 @@ typedef struct batch_job_launch_msg {
 	uint16_t restart_cnt;	/* batch job restart count	*/
 	char **spank_job_env;	/* SPANK job environment variables */
 	uint32_t spank_job_env_size;	/* size of spank_job_env */
+	char **pelog_env;	/* other prolog/epilog job env variables */
+	uint32_t pelog_env_size;/* size of pelog_env */
 	char *resv_name;        /* job's reservation */
         char *resv_ports;       /* reserve ports for jobpack nodes */
 } batch_job_launch_msg_t;

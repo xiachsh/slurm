@@ -2184,6 +2184,9 @@ extern batch_job_launch_msg_t *build_launch_job_msg(struct job_record *job_ptr,
 	launch_msg_ptr->spank_job_env_size = job_ptr->spank_job_env_size;
 	launch_msg_ptr->spank_job_env = xduparray(job_ptr->spank_job_env_size,
 						  job_ptr->spank_job_env);
+	launch_msg_ptr->pelog_env_size = job_ptr->pelog_env_size;
+	launch_msg_ptr->pelog_env = xduparray(job_ptr->pelog_env_size,
+						  job_ptr->pelog_env);
 	launch_msg_ptr->environment = get_job_env(job_ptr,
 						  &launch_msg_ptr->envc);
 	if (launch_msg_ptr->environment == NULL) {
@@ -2326,6 +2329,31 @@ static void _add_jobpack_envs(char **member_env, int numpack, uint32_t ntasks,
 	numpack++;  /* add 1 for legacy job or packleader job */
 	env_array_append_fmt(&member_env, "SLURM_NUMPACK",
 			     "%d", numpack);
+	/* for epilog */
+	env_array_append_fmt(&job_ptr->pelog_env, "SLURM_NUMPACK",
+			 "%d", numpack);
+	job_ptr->pelog_env_size++;
+
+	/* add other env vars for prolog/epilog */
+	tmp = xmalloc(40);
+	for (i=0; i<numpack; i++) {
+		sprintf(tmp, "SLURM_NODELIST_PACK_GROUP_%d", i);
+	        if ((val = getenvp(member_env, tmp))) {
+			env_array_append_fmt(&job_ptr->pelog_env,
+					 tmp, "%s", val);
+			job_ptr->pelog_env_size++;
+		}
+	}
+	if (job_ptr == job_ptr_ldr)
+	        strcpy(tmp, "SLURM_NODELIST_PACK_GROUP_0");
+	else
+	        sprintf(tmp, "SLURM_NODELIST_PACK_GROUP_%d",
+			job_ptr->group_number);
+
+	env_array_append_fmt(&job_ptr->pelog_env, tmp,
+				"%s", job_ptr->nodes);
+	job_ptr->pelog_env_size++;
+	xfree(tmp);
 
 	/* add SLURM_LISTJOBIDS to member_env */
 	env_array_append_fmt(&member_env, "SLURM_LISTJOBIDS",
@@ -2344,20 +2372,18 @@ static void _add_jobpack_envs(char **member_env, int numpack, uint32_t ntasks,
 	nnodes_pack = get_pack_nodelist(jp->job_id, &nodelist_pack);
 	env_array_overwrite_fmt(&member_env, "SLURM_NODELIST",
 				"%s", nodelist_pack);
+
 	env_array_overwrite_fmt(&member_env, "SLURM_NNODES",
 				"%d", nnodes_pack);
-	xfree(nodelist_pack);
-
 	ntasks += launch_msg_ptr->ntasks;
-	if (ntasks) {
+	if (ntasks)
 	        env_array_overwrite_fmt(&member_env, "SLURM_NTASKS",
 					"%d", ntasks);
-	}
+	xfree(nodelist_pack);
 
 	/* add rports */
 	it = list_iterator_create(rports);
 	while ((val = list_next(it))) {
-	  info("DHP sched: val = %s", val);
 	        key1 = xstrdup(val);
 		delim = strchr(key1, '=');
 		if (delim) {
@@ -2367,6 +2393,10 @@ static void _add_jobpack_envs(char **member_env, int numpack, uint32_t ntasks,
 			sprintf (tmp, "SLURM_RESV_PORTS_PACK_GROUP_%d",
 				 atoi(key1));
 			env_array_append_fmt(&member_env, tmp, "%s", key2);
+			/* for epilog */
+			env_array_append_fmt(&job_ptr->pelog_env,
+					 tmp, "%s", key2);
+			job_ptr->pelog_env_size++;
 			xfree(tmp);
 			xfree(key1);
 			xfree(key2);
@@ -2386,6 +2416,7 @@ static void _add_jobpack_envs(char **member_env, int numpack, uint32_t ntasks,
 		for(i=0; i<member_envc; i++)
 		        launch_msg_ptr->environment[j++] = member_env[i];
 		launch_msg_ptr->envc += member_envc;
+
 		/*
 		char **ptr;
 		for (ptr = member_env; *ptr != NULL; ptr++)
@@ -2722,6 +2753,7 @@ extern void launch_job(struct job_record *job_ptr)
 	if (member_env)
 	        _add_jobpack_envs (member_env, numpack, ntasks, list_jobids,
 				   job_ptr, launch_msg_ptr, job_ptr, rports);
+
 	xfree(list_jobids);
 	FREE_NULL_LIST(rports);
 
@@ -3938,6 +3970,11 @@ static char **_build_env(struct job_record *job_ptr)
 	if (job_ptr->spank_job_env_size) {
 		env_array_merge(&my_env,
 				(const char **) job_ptr->spank_job_env);
+	}
+	/* Set other prolog/epilog env vars */
+	if (job_ptr->pelog_env_size) {
+		env_array_merge(&my_env,
+				(const char **) job_ptr->pelog_env);
 	}
 
 #ifdef HAVE_BG

@@ -1223,6 +1223,8 @@ static void _dump_job_state(struct job_record *dump_job_ptr, Buf buffer)
 				SLURM_PROTOCOL_VERSION);
 	packstr_array(dump_job_ptr->spank_job_env,
 		      dump_job_ptr->spank_job_env_size, buffer);
+	packstr_array(dump_job_ptr->pelog_env,
+		      dump_job_ptr->pelog_env_size, buffer);
 
 	(void) gres_plugin_job_state_pack(dump_job_ptr->gres_list, buffer,
 					  dump_job_ptr->job_id, true,
@@ -1264,6 +1266,7 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 	uint32_t exit_code, assoc_id, db_index, name_len, time_min;
 	uint32_t next_step_id, total_cpus, total_nodes = 0, cpu_cnt;
 	uint32_t resv_id, spank_job_env_size = 0, qos_id, derived_ec = 0;
+	uint32_t pelog_env_size = 0;
 	uint32_t array_job_id = 0, req_switch = 0, wait4switch = 0;
 	uint32_t profile = ACCT_GATHER_PROFILE_NOT_SET;
 	uint32_t job_state;
@@ -1292,6 +1295,7 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 	char *burst_buffer = NULL, *task_id_str = NULL, *mcs_label = NULL;
 	uint32_t task_id_size = NO_VAL;
 	char **spank_job_env = (char **) NULL;
+	char **pelog_env = (char **) NULL;
 	List gres_list = NULL, part_ptr_list = NULL;
 	struct job_record *job_ptr = NULL;
 	struct part_record *part_ptr;
@@ -1462,6 +1466,8 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 			goto unpack_error;
 
 		safe_unpackstr_array(&spank_job_env, &spank_job_env_size,
+				     buffer);
+		safe_unpackstr_array(&pelog_env, &pelog_env_size,
 				     buffer);
 
 		if (gres_plugin_job_state_unpack(&gres_list, buffer, job_id,
@@ -1650,6 +1656,8 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 			goto unpack_error;
 
 		safe_unpackstr_array(&spank_job_env, &spank_job_env_size,
+				     buffer);
+		safe_unpackstr_array(&pelog_env, &pelog_env_size,
 				     buffer);
 
 		if (gres_plugin_job_state_unpack(&gres_list, buffer, job_id,
@@ -1844,6 +1852,8 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 
 		safe_unpackstr_array(&spank_job_env, &spank_job_env_size,
 				     buffer);
+		safe_unpackstr_array(&pelog_env, &pelog_env_size,
+				     buffer);
 
 		if (gres_plugin_job_state_unpack(&gres_list, buffer, job_id,
 						 protocol_version) !=
@@ -2023,6 +2033,8 @@ static int _load_job_state(Buf buffer, uint16_t protocol_version)
 	job_ptr->job_resrcs   = job_resources;
 	job_ptr->spank_job_env = spank_job_env;
 	job_ptr->spank_job_env_size = spank_job_env_size;
+	job_ptr->pelog_env    = pelog_env;
+	job_ptr->pelog_env_size = pelog_env_size;
 	job_ptr->ckpt_interval = ckpt_interval;
 	job_ptr->check_job    = check_job;
 	job_ptr->start_time   = start_time;
@@ -2212,6 +2224,9 @@ unpack_error:
 	for (i=0; i<spank_job_env_size; i++)
 		xfree(spank_job_env[i]);
 	xfree(spank_job_env);
+	for (i=0; i<pelog_env_size; i++)
+		xfree(pelog_env[i]);
+	xfree(pelog_env);
 	xfree(state_desc);
 	xfree(task_id_str);
 	xfree(tres_alloc_str);
@@ -3623,6 +3638,19 @@ void dump_job_desc(job_desc_msg_t * job_specs)
 		       job_specs->spank_job_env[1],
 		       job_specs->spank_job_env[2]);
 
+	if (job_specs->pelog_env_size == 1)
+		debug3("   pelog_env=\"%s\"",
+		       job_specs->pelog_env[0]);
+	else if (job_specs->pelog_env_size == 2)
+		debug3("   pelog_env=%s,%s",
+		       job_specs->pelog_env[0],
+		       job_specs->pelog_env[1]);
+	else if (job_specs->pelog_env_size > 2)
+		debug3("   pelog_env=%s,%s,%s,...",
+		       job_specs->pelog_env[0],
+		       job_specs->pelog_env[1],
+		       job_specs->pelog_env[2]);
+
 	debug3("   stdin=%s stdout=%s stderr=%s",
 	       job_specs->std_in, job_specs->std_out, job_specs->std_err);
 
@@ -3886,6 +3914,15 @@ extern struct job_record *job_array_split(struct job_record *job_ptr)
 		for (i = 0; i < job_ptr->spank_job_env_size; i++) {
 			job_ptr_pend->spank_job_env[i] =
 				xstrdup(job_ptr->spank_job_env[i]);
+		}
+	}
+	if (job_ptr->pelog_env_size) {
+		job_ptr_pend->pelog_env =
+			xmalloc(sizeof(char *) *
+			(job_ptr->pelog_env_size + 1));
+		for (i = 0; i < job_ptr->pelog_env_size; i++) {
+			job_ptr_pend->pelog_env[i] =
+				xstrdup(job_ptr->pelog_env[i]);
 		}
 	}
 	job_ptr_pend->state_desc = xstrdup(job_ptr->state_desc);
@@ -7314,6 +7351,7 @@ _copy_job_desc_to_job_record(job_desc_msg_t * job_desc,
 	job_ptr->warn_signal = job_desc->warn_signal;
 	job_ptr->warn_time   = job_desc->warn_time;
 	job_ptr->group_number = job_desc->group_number;
+	job_ptr->numpack = job_desc->numpack;
 
 	detail_ptr = job_ptr->details;
 	detail_ptr->argc = job_desc->argc;
@@ -7416,8 +7454,10 @@ _copy_job_desc_to_job_record(job_desc_msg_t * job_desc,
 		detail_ptr->std_out = xstrdup(job_desc->std_out);
 	if (job_desc->work_dir)
 		detail_ptr->work_dir = xstrdup(job_desc->work_dir);
+
 	if (job_desc->begin_time > time(NULL))
 		detail_ptr->begin_time = job_desc->begin_time;
+
 	job_ptr->select_jobinfo =
 		select_g_select_jobinfo_copy(job_desc->select_jobinfo);
 	select_g_select_jobinfo_set(job_ptr->select_jobinfo,
@@ -8162,6 +8202,7 @@ static void _list_delete_job(void *job_entry)
 	struct job_record *job_ptr = (struct job_record *) job_entry;
 	struct job_record **job_pptr, *tmp_ptr;
 	int job_array_size, i;
+	char **ptr;
 
 	xassert(job_entry);
 	xassert (job_ptr->magic == JOB_MAGIC);
@@ -8255,6 +8296,10 @@ static void _list_delete_job(void *job_entry)
 	for (i = 0; i < job_ptr->spank_job_env_size; i++)
 		xfree(job_ptr->spank_job_env[i]);
 	xfree(job_ptr->spank_job_env);
+	if (job_ptr->pelog_env_size) {
+		for (ptr = job_ptr->pelog_env; *ptr != NULL; ptr++)
+			xfree(*ptr);
+	}
 	xfree(job_ptr->state_desc);
 	xfree(job_ptr->tres_alloc_cnt);
 	xfree(job_ptr->tres_alloc_str);
@@ -12343,6 +12388,9 @@ static void _send_job_kill(struct job_record *job_ptr)
 	kill_job->spank_job_env = xduparray(job_ptr->spank_job_env_size,
 					    job_ptr->spank_job_env);
 	kill_job->spank_job_env_size = job_ptr->spank_job_env_size;
+	kill_job->pelog_env = xduparray(job_ptr->pelog_env_size,
+					    job_ptr->pelog_env);
+	kill_job->pelog_env_size = job_ptr->pelog_env_size;
 
 #ifdef HAVE_FRONT_END
 	if (job_ptr->batch_host &&
@@ -12760,6 +12808,9 @@ abort_job_on_node(uint32_t job_id, struct job_record *job_ptr, char *node_name)
 		kill_req->spank_job_env = xduparray(job_ptr->spank_job_env_size,
 						    job_ptr->spank_job_env);
 		kill_req->spank_job_env_size = job_ptr->spank_job_env_size;
+		kill_req->pelog_env = xduparray(job_ptr->pelog_env_size,
+						    job_ptr->pelog_env);
+		kill_req->pelog_env_size = job_ptr->pelog_env_size;
 	} else {
 		/* kill_req->start_time = 0;  Default value */
 	}
@@ -12813,6 +12864,9 @@ kill_job_on_node(uint32_t job_id, struct job_record *job_ptr,
 	kill_req->spank_job_env = xduparray(job_ptr->spank_job_env_size,
 					    job_ptr->spank_job_env);
 	kill_req->spank_job_env_size = job_ptr->spank_job_env_size;
+	kill_req->pelog_env = xduparray(job_ptr->pelog_env_size,
+					    job_ptr->pelog_env);
+	kill_req->pelog_env_size = job_ptr->pelog_env_size;
 
 	agent_info = xmalloc(sizeof(agent_arg_t));
 	agent_info->node_count	= 1;
@@ -15434,6 +15488,11 @@ _copy_job_record_to_job_desc(struct job_record *job_ptr)
 					       job_desc->spank_job_env_size);
 	for (i = 0; i < job_desc->spank_job_env_size; i ++)
 		job_desc->spank_job_env[i]= xstrdup(job_ptr->spank_job_env[i]);
+	job_desc->pelog_env_size = job_ptr->pelog_env_size;
+	job_desc->pelog_env      = xmalloc(sizeof(char *) *
+					       job_desc->pelog_env_size);
+	for (i = 0; i < job_desc->pelog_env_size; i ++)
+		job_desc->pelog_env[i]= xstrdup(job_ptr->pelog_env[i]);
 	job_desc->std_err           = xstrdup(details->std_err);
 	job_desc->std_in            = xstrdup(details->std_in);
 	job_desc->std_out           = xstrdup(details->std_out);

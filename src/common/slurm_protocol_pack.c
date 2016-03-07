@@ -5217,6 +5217,8 @@ _pack_kill_job_msg(kill_job_msg_t * msg, Buf buffer, uint16_t protocol_version)
 					     protocol_version);
 		packstr_array(msg->spank_job_env, msg->spank_job_env_size,
 			      buffer);
+		packstr_array(msg->pelog_env, msg->pelog_env_size,
+			      buffer);
 	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
 		pack32(msg->job_id,  buffer);
 		pack32(msg->step_id,  buffer);
@@ -5261,6 +5263,8 @@ _unpack_kill_job_msg(kill_job_msg_t ** msg, Buf buffer,
 			goto unpack_error;
 		safe_unpackstr_array(&(tmp_ptr->spank_job_env),
 				     &tmp_ptr->spank_job_env_size, buffer);
+		safe_unpackstr_array(&(tmp_ptr->pelog_env),
+				     &tmp_ptr->pelog_env_size, buffer);
 	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
 		safe_unpack32(&(tmp_ptr->job_id),  buffer);
 		safe_unpack32(&(tmp_ptr->step_id),  buffer);
@@ -9146,6 +9150,8 @@ _pack_job_desc_msg(job_desc_msg_t * job_desc_ptr, Buf buffer,
 			      job_desc_ptr->env_size, buffer);
 		packstr_array(job_desc_ptr->spank_job_env,
 			      job_desc_ptr->spank_job_env_size, buffer);
+		packstr_array(job_desc_ptr->pelog_env,
+			      job_desc_ptr->pelog_env_size, buffer);
 		packstr(job_desc_ptr->script, buffer);
 		packstr_array(job_desc_ptr->argv, job_desc_ptr->argc, buffer);
 
@@ -9660,6 +9666,9 @@ _unpack_job_desc_msg(job_desc_msg_t ** job_desc_buffer_ptr, Buf buffer,
 				     &job_desc_ptr->env_size, buffer);
 		safe_unpackstr_array(&job_desc_ptr->spank_job_env,
 				     &job_desc_ptr->spank_job_env_size,
+				     buffer);
+		safe_unpackstr_array(&job_desc_ptr->pelog_env,
+				     &job_desc_ptr->pelog_env_size,
 				     buffer);
 		safe_unpackstr_xmalloc(&job_desc_ptr->script,
 				       &uint32_tmp, buffer);
@@ -10325,6 +10334,8 @@ _pack_launch_tasks_request_msg(launch_tasks_request_msg_t * msg, Buf buffer,
 		packstr_array(msg->env, msg->envc, buffer);
 		packstr_array(msg->spank_job_env, msg->spank_job_env_size,
 			      buffer);
+		packstr_array(msg->pelog_env, msg->pelog_env_size,
+			      buffer);
 		packstr(msg->cwd, buffer);
 		pack16(msg->cpu_bind_type, buffer);
 		packstr(msg->cpu_bind, buffer);
@@ -10661,6 +10672,8 @@ _unpack_launch_tasks_request_msg(launch_tasks_request_msg_t **
 		safe_unpackstr_array(&msg->env, &msg->envc, buffer);
 		safe_unpackstr_array(&msg->spank_job_env,
 				     &msg->spank_job_env_size, buffer);
+		safe_unpackstr_array(&msg->pelog_env,
+				     &msg->pelog_env_size, buffer);
 		safe_unpackstr_xmalloc(&msg->cwd, &uint32_tmp, buffer);
 		safe_unpack16(&msg->cpu_bind_type, buffer);
 		safe_unpackstr_xmalloc(&msg->cpu_bind, &uint32_tmp, buffer);
@@ -11125,6 +11138,8 @@ _pack_prolog_launch_msg(
 		packstr(msg->work_dir, buffer);
 		packstr_array(msg->spank_job_env, msg->spank_job_env_size,
 			      buffer);
+		packstr_array(msg->pelog_env, msg->pelog_env_size,
+			      buffer);
 		slurm_cred_pack(msg->cred, buffer, protocol_version);
 	} else if (protocol_version >= SLURM_MIN_PROTOCOL_VERSION) {
 		pack32(msg->job_id, buffer);
@@ -11174,6 +11189,9 @@ _unpack_prolog_launch_msg(
 
 		safe_unpackstr_array(&launch_msg_ptr->spank_job_env,
 				     &launch_msg_ptr->spank_job_env_size,
+				     buffer);
+		safe_unpackstr_array(&launch_msg_ptr->pelog_env,
+				     &launch_msg_ptr->pelog_env_size,
 				     buffer);
 		if (!(launch_msg_ptr->cred = slurm_cred_unpack(buffer,
 							protocol_version)))
