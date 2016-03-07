@@ -331,7 +331,7 @@ void slurmctld_req(slurm_msg_t *msg, connection_arg_t *arg)
 		_slurm_rpc_complete_batch_script(msg, 0);
 		break;
 	case REQUEST_JOB_STEP_CREATE:
-		//info("******** MNP Processing RPC REQUEST_JOB_STEP_CREATE"); // MNP debug
+		//debug("******** MNP Processing RPC REQUEST_JOB_STEP_CREATE"); // MNP debug
 		_slurm_rpc_job_step_create(msg);
 		break;
 	case REQUEST_JOB_STEP_INFO:

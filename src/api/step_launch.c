@@ -1185,7 +1185,7 @@ _exit_handler(struct step_launch_state *sls, slurm_msg_t *exit_msg)
 static void
 _job_complete_handler(struct step_launch_state *sls, slurm_msg_t *complete_msg)
 {
-	//info("******** MNP pid=%d: entering api/step_launch _job_complete_handler", getpid());
+	//debug("******** MNP pid=%d: entering api/step_launch _job_complete_handler", getpid());
 	srun_job_complete_msg_t *step_msg =
 		(srun_job_complete_msg_t *) complete_msg->data;
 
@@ -1205,8 +1205,8 @@ _job_complete_handler(struct step_launch_state *sls, slurm_msg_t *complete_msg)
 	sls->abort = true;
 	pthread_cond_broadcast(&sls->cond);
 
-//nlk	pthread_mutex_unlock(&sls->lock);
-//nlk//info("******** MNP pid=%d: exiting api/step_launch _job_complete_handler", getpid());
+	pthread_mutex_unlock(&sls->lock);  //nlk
+	//debug("******** MNP pid=%d: exiting api/step_launch _job_complete_handler", getpid());  //nlk
 
 }
 

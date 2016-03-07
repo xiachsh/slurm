@@ -1008,7 +1008,7 @@ cleanup:
 
 	mpir_cleanup();
 	log_fini();
-	//info("******** MNP pid=%d: exiting fini_srun", getpid());
+	//debug("******** MNP pid=%d: exiting fini_srun", getpid());
 }
 
 void
@@ -1685,7 +1685,7 @@ static int _set_umask_env(void)
 static void _shepard_notify(int shepard_fd)
 {
 	int rc;
-	//info("******** MNP pid=%d, entering _shepard_notify, shepard_fd=%d", getpid(), shepard_fd);
+	//debug("******** MNP pid=%d, entering _shepard_notify, shepard_fd=%d", getpid(), shepard_fd);
 
 	while (1) {
 		rc = write(shepard_fd, "", 1);
@@ -1697,7 +1697,7 @@ static void _shepard_notify(int shepard_fd)
 		break;
 	}
 	close(shepard_fd);
-	//info("******** MNP pid=%d, exiting _shepard_notify", getpid());
+	//debug("******** MNP pid=%d, exiting _shepard_notify", getpid());
 }
 
 static int _shepard_spawn(srun_job_t *job, bool got_alloc)
