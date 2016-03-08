@@ -2919,8 +2919,8 @@ static void _depend_list2str(struct job_record *job_ptr, bool set_or_flag)
 {
 	ListIterator depend_iter;
 	struct depend_spec *dep_ptr;
-	char *dep_str, *sep = "";
 	bool leader1 = false;
+	char *dep_str, *sep = "";
 
 	if (job_ptr->details == NULL)
 		return;
@@ -2958,14 +2958,34 @@ static void _depend_list2str(struct job_record *job_ptr, bool set_or_flag)
 
 		if (dep_ptr->array_task_id == INFINITE)
 			xstrfmtcat(job_ptr->details->dependency, "%s%s:%u_*",
-				   sep, dep_str, dep_ptr->job_id);
+					sep, dep_str, dep_ptr->job_id);
 		else if (dep_ptr->array_task_id == NO_VAL)
 			xstrfmtcat(job_ptr->details->dependency, "%s%s:%u",
-				   sep, dep_str, dep_ptr->job_id);
-		else
+					sep, dep_str, dep_ptr->job_id);
+/*nlk		else if
 			xstrfmtcat(job_ptr->details->dependency, "%s%s:%u_%u",
-				   sep, dep_str, dep_ptr->job_id,
-				   dep_ptr->array_task_id);
+					sep, dep_str, dep_ptr->job_id,
+					dep_ptr->array_task_id);    nlk*/
+
+		if (strcmp(dep_str,"pack") == 0) {
+			xstrfmtcat(job_ptr->details->dependency, "%s%s ", sep,
+				   dep_str);
+		} else if (strcmp(dep_str,"packleader") == 0) {
+			if (!leader1) {
+				xstrfmtcat(job_ptr->details->dependency,
+					"%s%s:%u",
+					sep, dep_str, dep_ptr->job_id);
+			} else {
+				xstrfmtcat(job_ptr->details->dependency, "%s%u",
+					sep, dep_ptr->job_id);
+
+			}
+			leader1 = true;
+
+		} else {
+			xstrfmtcat(job_ptr->details->dependency, "%s%s:%u%u",
+				sep, dep_str, dep_ptr->job_id,dep_ptr->array_task_id);
+		}
 
 		if (set_or_flag)
 			dep_ptr->depend_flags |= SLURM_FLAGS_OR;

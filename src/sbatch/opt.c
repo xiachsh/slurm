@@ -961,7 +961,7 @@ int process_options_second_pass(int argc, char *argv[], const char *file,
 				const void *script_body, int script_size)
 {
 	int i;
-	//if (!packjob) {   //nlk this is what I moved from below
+
 	/* set options from batch script */
 	_opt_batch_script(file, script_body, script_size);
 
@@ -989,6 +989,7 @@ int process_options_second_pass(int argc, char *argv[], const char *file,
 		_opt_list();
 
 	return 1;
+
 
 }
 
@@ -3290,8 +3291,7 @@ static void _opt_list(void)
 static void _usage(void)
 {
 	printf(
-"Usage: sbatch job_description(0) [ : job_description(1)] [...] [ : job_description(n)] \n"
-"              Where job_descriptions is \n"
+"Usage: sbatch [-N nnodes] [-n ntasks]\n"
 "              [-c ncpus] [-r n] [-p partition] [--hold] [--parsable] [-t minutes]\n"
 "              [-D path] [--immediate] [--no-kill] [--overcommit]\n"
 "              [--input file] [--output file] [--error file]\n"
@@ -3332,8 +3332,7 @@ static void _help(void)
 	slurm_ctl_conf_t *conf;
 
 	printf (
-"Usage: sbatch job_description(0) [ : job_description(1)] [...] [ : job_description(n)] \n"
-"              Each job_descriptiong is [OPTIONS...] executable [args...]\n"
+"Usage: sbatch [OPTIONS...] executable [args...]\n"
 "\n"
 "Parallel run options:\n"
 "  -a, --array=indexes         job array index values\n"
