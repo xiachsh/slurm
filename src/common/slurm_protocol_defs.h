@@ -1008,6 +1008,7 @@ typedef struct batch_job_launch_msg {
 	char **spank_job_env;	/* SPANK job environment variables */
 	uint32_t spank_job_env_size;	/* size of spank_job_env */
 	char *resv_name;        /* job's reservation */
+        char *resv_ports;       /* reserve ports for jobpack nodes */
 } batch_job_launch_msg_t;
 
 typedef struct job_id_request_msg {

@@ -201,6 +201,7 @@ enum wrappers {
 #define LONG_OPT_KILL_INV_DEP    0x161
 #define LONG_OPT_MCS_LABEL       0x165
 #define LONG_OPT_DEADLINE        0x166
+#define LONG_OPT_RESV_PORT       0x167
 
 extern bool packjob;
 extern bool packleader;
@@ -432,6 +433,8 @@ static void _opt_default()
 	opt.job_flags = 0;
 
 	opt.mcs_label		= NULL;
+
+	opt.resv_port   = 0;
 }
 
 /*---[ env var processing ]-----------------------------------------------*/
@@ -826,6 +829,7 @@ static struct option long_options[] = {
 	{"wait-all-nodes",required_argument, 0, LONG_OPT_WAIT_ALL_NODES},
 	{"wckey",         required_argument, 0, LONG_OPT_WCKEY},
 	{"wrap",          required_argument, 0, LONG_OPT_WRAP},
+	{"resv-port",     no_argument,       0, LONG_OPT_RESV_PORT},
 	{NULL,            0,                 0, 0}
 };
 
@@ -1872,6 +1876,9 @@ static void _set_options(int argc, char **argv)
 				opt.job_flags |= KILL_INV_DEP;
 			if (xstrcasecmp(optarg, "no") == 0)
 				opt.job_flags |= NO_KILL_INV_DEP;
+			break;
+		case LONG_OPT_RESV_PORT:
+			opt.resv_port = 1;
 			break;
 		default:
 			if (spank_process_option (opt_char, optarg) < 0) {
