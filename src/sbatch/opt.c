@@ -202,7 +202,6 @@ enum wrappers {
 #define LONG_OPT_MCS_LABEL       0x165
 #define LONG_OPT_DEADLINE        0x166
 #define LONG_OPT_RESV_PORT       0x167
-#define LONG_OPT_RESV_PORT       0x162
 
 extern bool packjob;
 extern bool packleader;
