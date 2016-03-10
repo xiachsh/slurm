@@ -105,7 +105,7 @@
 #define BUILD_TIMEOUT 2000000	/* Max build_job_queue() run time in usec */
 #define MAX_FAILED_RESV 10
 #define MAX_RETRIES 10
-#define MAX_PACKMEMBER_ORPHAN 180 /* Max time pack member waits for leader */
+#define MAX_PACKMEMBER_ORPHAN 60 /* Max time pack member waits for leader */
 typedef struct epilog_arg {
 	char *epilog_slurmctld;
 	uint32_t job_id;
@@ -1856,6 +1856,7 @@ next_task:
 		} else if (error_code ==
 			    (ESLURM_REQUESTED_NODE_CONFIG_UNAVAILABLE)
 			   || (error_code == ESLURM_JOB_PACK_BAD_MEMBER)
+			   || (error_code == ESLURM_JOB_PACK_BAD_DEPENDENCY)
 			   || (error_code == ESLURM_JOB_PACK_NEVER_RUN)) {
 			if (job_ptr->part_ptr_list) {
 				debug("JobId=%u non-runnable in partition %s: "
@@ -3033,7 +3034,6 @@ extern int test_job_dependency(struct job_record *job_ptr)
 				lpackmbr = job_ptr->job_id;
 			}
 		} else if (dep_ptr->depend_type == SLURM_DEPEND_PACKLEADER) {
-			depends = false;
 			if ((debug_flags & DEBUG_FLAG_JOB_PACK)
 			     && ( job_ptr->job_id >= lpackldr)) {
 				info("JPCK: Jobid=%d (%s) is a pack leader "
@@ -3213,20 +3213,70 @@ extern int test_job_dependency(struct job_record *job_ptr)
 	return results;
 }
 
-static void _xref_packleader(struct job_record *job_ptr, List depend_list)
+/*
+ * Add cross-reference to packleader to its pack jobs
+ * IN job_ptr - job record of pack leader.
+ * IN depend_list - List of dependency structures of jobs leader depends on
+ */
+static bool _xref_packleader(struct job_record *job_ptr, List depend_list)
 {
-	/* Add cross-reference to packleader to its pack jobs */
+	uint64_t debug_flags;
 	ListIterator depend_iter;
 	struct depend_spec *ldr_dep_ptr;
 	struct job_record *dep_job_ptr;
+	debug_flags = slurm_get_debug_flags();
 	job_ptr->pack_leader = job_ptr->job_id;
 	depend_iter = list_iterator_create(depend_list);
 	while ((ldr_dep_ptr = (struct depend_spec *) list_next(depend_iter))) {
 		if (ldr_dep_ptr->depend_type == SLURM_DEPEND_PACKLEADER) {
-			dep_job_ptr = ldr_dep_ptr->job_ptr;
-			if (dep_job_ptr == NULL)
-				continue;
+			dep_job_ptr = find_job_record(ldr_dep_ptr->job_id);
+			if (dep_job_ptr == NULL) {
+				if (debug_flags & DEBUG_FLAG_JOB_PACK) {
+					info("JPCK: No job record for member=%d"
+					     " for leader=%d",
+					     ldr_dep_ptr->job_id,
+					     job_ptr->job_id);
+				}
+				list_iterator_destroy(depend_iter);
+				return false;
+			}
+			if (dep_job_ptr != ldr_dep_ptr->job_ptr) {
+				if (debug_flags & DEBUG_FLAG_JOB_PACK) {
+					info("JPCK: Bad dependency structure"
+					     "for leader=%d", job_ptr->job_id);
+				}
+				list_iterator_destroy(depend_iter);
+				return false;
+			}
+			if (dep_job_ptr->details == NULL
+			    || dep_job_ptr->details->dependency == NULL
+			    || (strcmp(dep_job_ptr->details->dependency,
+					    "pack ") !=0)) {
+				if (debug_flags & DEBUG_FLAG_JOB_PACK) {
+					info("JPCK: %d is not -dpack"
+					     " for leader=%d",
+					     ldr_dep_ptr->job_id,
+					     job_ptr->job_id);
+				}
+				list_iterator_destroy(depend_iter);
+				return false;
+			}
+			if (strcmp(dep_job_ptr->account,job_ptr->account)
+									!= 0) {
+				if (debug_flags & DEBUG_FLAG_JOB_PACK) {
+					info("JPCK: member=%d is not same "
+					     "accountg as leader=%d",
+					     ldr_dep_ptr->job_id,
+					     job_ptr->job_id);
+				}
+				list_iterator_destroy(depend_iter);
+				return false;
+			}
+
+			/* This is a pack member, identify its leader */
 			dep_job_ptr->pack_leader = job_ptr->job_id;
+			/* Reformat dependency string so scontrol identifies
+			 * this our pack leadder */
 			xfree(dep_job_ptr->details->dependency);
 			dep_job_ptr->details->dependency = xstrdup("pack");
 			xstrfmtcat(dep_job_ptr->details->dependency,
@@ -3234,6 +3284,7 @@ static void _xref_packleader(struct job_record *job_ptr, List depend_list)
 		}
 	}
 	list_iterator_destroy(depend_iter);
+	return true;
 }
 
 /*
@@ -3493,8 +3544,11 @@ extern int update_job_dependency(struct job_record *job_ptr, char *new_depend)
 			break;
 		}
 	}
-	if (depend_type == SLURM_DEPEND_PACKLEADER)
-		_xref_packleader(job_ptr, new_depend_list);
+	if (depend_type == SLURM_DEPEND_PACKLEADER) {
+		if(!_xref_packleader(job_ptr, new_depend_list)) {
+			rc = ESLURM_JOB_PACK_BAD_DEPENDENCY;
+		}
+	}
 
 	if (rc == SLURM_SUCCESS) {
 		/* test for circular dependencies (e.g. A -> B -> A) */
