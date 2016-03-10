@@ -1501,15 +1501,12 @@ void print_fields(type_t type, void *object)
 					     tmp_int,
 					     (curr_inx == field_count));
 			break;
-//										/* wjb */
 		case PRINT_PACKID:
 			switch(type) {
 			case JOB:
 				tmp_uint32 = job->packid;
-//info("in sacct/print.c job->packid is %u", job->packid);			/* wjb */
 				break;
 			case JOBSTEP:
-//info("case PRINT_PACKID switched on case JOBSTEP");				/* wjb */
 				tmp_uint32 = job->packid;
 				break;
 			case JOBCOMP:
@@ -1530,7 +1527,6 @@ void print_fields(type_t type, void *object)
 				break;
 			case JOBSTEP:
 				tmp_uint32 = step->packstepid[0];
-//info("in sacct/print.c PRINT_PACKJOBID step->packstepid[0] is %u", step->packstepid[0]);			/* wjb */
 				break;
 			case JOBCOMP:
 
@@ -1550,7 +1546,6 @@ void print_fields(type_t type, void *object)
 				break;
 			case JOBSTEP:
 				tmp_uint32 = step->packstepid[1];
-//info("in sacct/print.c PRINT_PACKSTEPID step->packstepid[1] is %u", step->packstepid[1]);			/* wjb */
 				break;
 			case JOBCOMP:
 
@@ -1563,7 +1558,6 @@ void print_fields(type_t type, void *object)
 					     tmp_uint32,
 					     (curr_inx == field_count));
 			break;
-//										/* wjb */
 		case PRINT_PRIO:
 			switch(type) {
 			case JOB:

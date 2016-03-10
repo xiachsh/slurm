@@ -5042,8 +5042,8 @@ pack_job_step_create_request_msg(job_step_create_request_msg_t * msg,
 
 		pack16(msg->relative, buffer);
 		pack32(msg->task_dist, buffer);
-		pack32(msg->packstepid[0], buffer); // MNP PACKSTEPID
-		pack32(msg->packstepid[1], buffer); // MNP PACKSTEPID
+		pack32(msg->packstepid[0], buffer);
+		pack32(msg->packstepid[1], buffer);
 		pack16(msg->plane_size, buffer);
 		pack16(msg->port, buffer);
 		pack16(msg->ckpt_interval, buffer);
@@ -5127,8 +5127,8 @@ unpack_job_step_create_request_msg(job_step_create_request_msg_t ** msg,
 
 		safe_unpack16(&(tmp_ptr->relative), buffer);
 		safe_unpack32(&(tmp_ptr->task_dist), buffer);
-		safe_unpack32(&(tmp_ptr->packstepid[0]), buffer); // MNP PACKSTEPID
-		safe_unpack32(&(tmp_ptr->packstepid[1]), buffer); // MNP PACKSTEPID
+		safe_unpack32(&(tmp_ptr->packstepid[0]), buffer);
+		safe_unpack32(&(tmp_ptr->packstepid[1]), buffer);
 		safe_unpack16(&(tmp_ptr->plane_size), buffer);
 		safe_unpack16(&(tmp_ptr->port), buffer);
 		safe_unpack16(&(tmp_ptr->ckpt_interval), buffer);
@@ -6059,6 +6059,8 @@ _unpack_job_step_info_members(job_step_info_t * step, Buf buffer,
 
 		safe_unpackstr_xmalloc(&step->tres_alloc_str,
 				       &uint32_tmp, buffer);
+		safe_unpack32(&step->packstepid[0], buffer);
+		safe_unpack32(&step->packstepid[1], buffer);
 	} else if (protocol_version >= SLURM_14_11_PROTOCOL_VERSION) {
 		safe_unpack32(&step->array_job_id, buffer);
 		safe_unpack32(&step->array_task_id, buffer);
@@ -10221,10 +10223,11 @@ _pack_launch_tasks_request_msg(launch_tasks_request_msg_t * msg, Buf buffer,
 		pack32(msg->job_id, buffer);
 		pack32(msg->job_step_id, buffer);
 		pack32(msg->ntasks, buffer);
-		pack32(msg->mpi_jobid, buffer); // MNP PMI
-		pack32(msg->mpi_ntasks, buffer); // MNP PMI
-		pack32(msg->mpi_nnodes, buffer); // MNP PMI
-		pack32(msg->mpi_stepftaskid, buffer); // MNP PMI
+		pack32(msg->mpi_jobid, buffer);
+		pack32(msg->mpi_ntasks, buffer);
+		pack32(msg->mpi_nnodes, buffer);
+		pack32(msg->mpi_stepfnodeid, buffer);
+		pack32(msg->mpi_stepftaskid, buffer);
 		pack32(msg->uid, buffer);
 		packstr(msg->partition, buffer);
 		packstr(msg->user_name, buffer);
@@ -10247,6 +10250,8 @@ _pack_launch_tasks_request_msg(launch_tasks_request_msg_t * msg, Buf buffer,
 				     buffer);
 		}
 		pack16(msg->num_resp_port, buffer);
+		pack32(msg->packstepid[0], buffer);
+		pack32(msg->packstepid[1], buffer);
 		for (i = 0; i < msg->num_resp_port; i++)
 			pack16(msg->resp_port[i], buffer);
 		slurm_pack_slurm_addr(&msg->orig_addr, buffer);
@@ -10517,13 +10522,11 @@ _unpack_launch_tasks_request_msg(launch_tasks_request_msg_t **
 		safe_unpack32(&msg->job_id, buffer);
 		safe_unpack32(&msg->job_step_id, buffer);
 		safe_unpack32(&msg->ntasks, buffer);
-		safe_unpack32(&msg->mpi_jobid, buffer); // MNP PMI
-		safe_unpack32(&msg->mpi_ntasks, buffer); // MNP PMI
-		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_ntasks=%d", msg->mpi_ntasks);
-		safe_unpack32(&msg->mpi_nnodes, buffer); // MNP PMI
-		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_nnodes=%d", msg->mpi_nnodes);
-		safe_unpack32(&msg->mpi_stepftaskid, buffer); // MNP PMI
-		debug("******** MNP in _unpack_launch_tasks_request_msg, msg->mpi_stepftaskid=%d", msg->mpi_stepftaskid);
+		safe_unpack32(&msg->mpi_jobid, buffer);
+		safe_unpack32(&msg->mpi_ntasks, buffer);
+		safe_unpack32(&msg->mpi_nnodes, buffer);
+		safe_unpack32(&msg->mpi_stepfnodeid, buffer);
+		safe_unpack32(&msg->mpi_stepftaskid, buffer);
 		safe_unpack32(&msg->uid, buffer);
 		safe_unpackstr_xmalloc(&msg->partition, &uint32_tmp, buffer);
 		safe_unpackstr_xmalloc(&msg->user_name, &uint32_tmp, buffer);
@@ -10552,6 +10555,8 @@ _unpack_launch_tasks_request_msg(launch_tasks_request_msg_t **
 				goto unpack_error;
 		}
 		safe_unpack16(&msg->num_resp_port, buffer);
+		safe_unpack32(&msg->packstepid[0], buffer);
+		safe_unpack32(&msg->packstepid[1], buffer);
 		if (msg->num_resp_port > 0) {
 			msg->resp_port = xmalloc(sizeof(uint16_t) *
 						 msg->num_resp_port);

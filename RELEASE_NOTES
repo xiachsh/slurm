@@ -87,9 +87,12 @@ COMMAND CHANGES (see man pages for details)
     information. Output of scontrol, sinfo, and sview changed accordingly.
     The field previously displayed as "Features" is now "AvailableFeatures"
     while the new field is displayed as "ActiveFeatures".
+ -- Add --pack-group to srun to job_pack member resources to be used
+    on a multi-step srun inside salloc or sbatch.
+ -- Add --mpi-combine to combine all members of a job_pack in one MPI_COMM_WORLD
+    rather than each member being its own MPI_COMM_WORLD.
 
 OTHER CHANGES
-=============
  -- Add mail wrapper script "smail" that will include job statistics in email
     notification messages.
  -- Removed support for authd. authd has not been developed and supported since
@@ -114,12 +117,54 @@ Changed members of the following structs
 
 Added members to the following struct definitions
 =================================================
+ -- Added the following fields to struct slurm_step_launch_params_t:
+    packstepid.
+ -- Added the following fields to struct slurm_job_info_t:
+    pack_leader.
+ -- Added the following fields to struct kill_job_msg_t:
+    pelog_env, pelog_env_size.
+ -- Added the following fields to struct job_desc_msg_t:
+    pelog_env, pelog_env_size, group_number, numpack, resv_port.
+ -- Added the following fields to struct launch_tasks_request_msg_t:
+    pelog_env, pelog_env_size.
+ -- Added the following fields to struct prolog_launch_msg_t:
+    pelog_env, pelog_env_size.
+ -- Added the following fields to struct job_desc_msg_t:
+    pack_leader.
+ -- Added the following fields to struct slurmdb_job_rec_t:
+    packid.
+ -- Added the following fields to struct slurmdb_step_rec_t:
+    packstepid.
+ -- Added the following fields to struct dbd_job_start_msg_t:
+    pack_leader.
+ -- Added the following fields to struct dbd_step_comp_msg_t:
+    packstepid.
+ -- Added the following fields to struct dbd_step_start_msg_t:
+    packstepid.
+ -- Added the following fields to struct _job_table_fields:
+    packid.
+ -- Added the following fields to struct step_table_fields:
+    packjobid, packstepid.
+ -- Added the following fields to struct job_step_create_request_msg_t:
+    packstepid.
+ -- Added the following fields to struct launch_tasks_request_msg_t:
+    packstepid.
+ -- Added the following fields to struct srun_options:
+    packstepid.
+ -- Added the following fields to struct job_record:
+    pack_leader.
+ -- Added the following fields to struct stepd_step_rec_t:
+    packstepid.
 
 Added the following struct definitions
 ======================================
+ -- Added pack_job_env_t: jobpack environment structure.
+ -- Added pack_group_struct_t: jobpack group environment structure.
 
 Changed the following enums and #defines
 ========================================
+ -- Added SLURM_DEPEND_PACKLEADER: ARRM Packleader.
+ -- Added SLURM_DEPEND_PACK:ARRM Pack.
 
 Added the following API's
 =========================

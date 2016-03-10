@@ -287,8 +287,6 @@ _handle_kvs_fence(int fd, int lrank, client_req_t *req)
 {
 	int rc = 0;
 
-	debug("******** MNP pid=%d received KVSFENCE_CMD", getpid());
-	debug("******** MNP pid=%d entering _handle_kvs_fence, kvs_seq=%d", getpid(), kvs_seq);
 	debug3("mpi/pmi2: in _handle_kvs_fence, from task %d",
 	       job_info.gtids[lrank]);
 	if (tasks_to_wait == 0 && children_to_wait == 0) {
@@ -315,7 +313,6 @@ _handle_kvs_fence(int fd, int lrank, client_req_t *req)
 	}
 	debug3("mpi/pmi2: out _handle_kvs_fence, tasks_to_wait=%d, "
 	       "children_to_wait=%d", tasks_to_wait, children_to_wait);
-	debug("******** MNP pid=%d exiting _handle_kvs_fence", getpid());
 	return rc;
 }
 

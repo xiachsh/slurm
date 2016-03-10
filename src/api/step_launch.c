@@ -190,7 +190,6 @@ int slurm_step_launch (slurm_step_ctx_t *ctx,
 	char **env = NULL;
 	char **mpi_env = NULL;
 	int rc = SLURM_SUCCESS;
-	debug("******** MNP pid=%d tid=%d entering slurm_step_launch", getpid(), (int)pthread_self());
 	debug("Entering slurm_step_launch");
 	memset(&launch, 0, sizeof(launch));
 
@@ -274,15 +273,13 @@ int slurm_step_launch (slurm_step_ctx_t *ctx,
 	launch.alias_list	= params->alias_list;
 	launch.nnodes		= ctx->step_resp->step_layout->node_cnt;
 	launch.ntasks		= ctx->step_resp->step_layout->task_cnt;
-	debug("******** MNP pid=%d, in slurm_step_launch, launch.ntasks=%d", getpid(), launch.ntasks);
-	debug("******** MNP pid=%d, in slurm_step_launch, params->mpi_stepftaskid=%d", getpid(), params->mpi_stepftaskid);
-	launch.mpi_jobid	= params->mpi_jobid; // MNP PMI
-	debug("******** MNP pid=%d, in slurm_step_launch, launch.mpi_jobid=%d", getpid(), launch.mpi_jobid);
-	launch.mpi_ntasks	= params->mpi_ntasks; // MNP PMI
-	launch.mpi_nnodes	= params->mpi_nnodes; // MNP PMI
-    if (!launch.mpi_nnodes)
-        launch.mpi_nnodes = launch.nnodes; // MNP PMI - legacy compatibility
-	launch.mpi_stepftaskid	= params->mpi_stepftaskid; // MNP PMI
+	launch.mpi_jobid	= params->mpi_jobid;
+	launch.mpi_ntasks	= params->mpi_ntasks;
+	launch.mpi_nnodes	= params->mpi_nnodes;
+	if (!launch.mpi_nnodes)
+		launch.mpi_nnodes = launch.nnodes;
+	launch.mpi_stepfnodeid	= params->mpi_stepfnodeid;
+	launch.mpi_stepftaskid	= params->mpi_stepftaskid;
 	launch.slurmd_debug	= params->slurmd_debug;
 	launch.switch_job	= ctx->step_resp->switch_job;
 	launch.profile		= params->profile;
@@ -389,7 +386,6 @@ fail1:
 	xfree(launch.cwd);
 	env_array_free(env);
 	job_options_destroy(launch.options);
-	debug("******** MNP pid=%d tid=%d exiting slurm_step_launch", getpid(), (int)(int)pthread_self());
 	return rc;
 }
 
@@ -497,6 +493,8 @@ int slurm_step_launch_add (slurm_step_ctx_t *ctx,
 	launch.options          = job_options_create();
 	launch.complete_nodelist =
 		xstrdup(ctx->step_resp->step_layout->node_list);
+	launch.packstepid[0]    = params->packstepid[0];
+	launch.packstepid[1]    = params->packstepid[1];
 
 	spank_set_remote_options (launch.options);
 	launch.task_flags = 0;
@@ -584,7 +582,6 @@ int slurm_step_launch_wait_start(slurm_step_ctx_t *ctx)
 			      sls->tasks_requested);
 			sls->abort = true;
 			_step_abort(ctx);
-			debug("******** MNP pid=%d tid=%d slurm_step_launch_wait_start, broadcast(&sls->cond) 1", getpid(), (int)pthread_self());
 			pthread_cond_broadcast(&sls->cond);
 			slurm_mutex_unlock(&sls->lock);
 			return SLURM_ERROR;
@@ -603,7 +600,6 @@ int slurm_step_launch_wait_start(slurm_step_ctx_t *ctx)
 				error("timeout waiting for I/O connect");
 				sls->abort = true;
 				_step_abort(ctx);
-				debug("******** MNP pid=%d tid=%d slurm_step_launch_wait_start, broadcast(&sls->cond) 2", getpid(), (int)pthread_self());
 				pthread_cond_broadcast(&sls->cond);
 				slurm_mutex_unlock(&sls->lock);
 				return SLURM_ERROR;
@@ -632,14 +628,12 @@ void slurm_step_launch_wait_finish(slurm_step_ctx_t *ctx)
 
 	sls = ctx->launch_state;
 
-	debug("******** MNP pid=%d, entering slurm_step_launch_wait_finish", getpid());
-//	debug("******** MNP pid=%d tid=%d entering slurm_step_launch_wait_finish", getpid(), (int)pthread_self());
-
+		debug("******** JPCK MNP pid=%d tid=%d entering slurm_step_launch_wait_finish", getpid(), (int)pthread_self());
 	/* Wait for all tasks to complete */
 	slurm_mutex_lock(&sls->lock);
 	while (bit_set_count(sls->tasks_exited) < sls->tasks_requested) {
 		if (!sls->abort) {
-			debug("******** MNP pid=%d tid=%d in slurm_step_launch_wait_finish, pthread_cond_wait &sls->cond", getpid(), (int)pthread_self());
+			debug("******** JPCK MNP pid=%d tid=%d in slurm_step_launch_wait_finish, pthread_cond_wait &sls->cond", getpid(), (int)pthread_self());
 			pthread_cond_wait(&sls->cond, &sls->lock);
 		} else {
 			if (!sls->abort_action_taken) {
@@ -751,7 +745,7 @@ void slurm_step_launch_wait_finish(slurm_step_ctx_t *ctx)
 	mpi_hook_client_fini(sls->mpi_state);
 
 	slurm_mutex_unlock(&sls->lock);
-	debug("******** MNP pid=%d, exiting slurm_step_launch_wait_finish", getpid());
+	debug("******** JPCK MNP pid=%d tid=%d exiting slurm_step_launch_wait_finish", getpid(), (int)pthread_self());
 }
 
 /*
@@ -770,7 +764,6 @@ void slurm_step_launch_abort(slurm_step_ctx_t *ctx)
 
 	slurm_mutex_lock(&sls->lock);
 	sls->abort = true;
-	debug("******** MNP pid=%d tid=%d slurm_step_launch_abort, broadcast(&sls->cond) 1", getpid(), (int)pthread_self());
 	pthread_cond_broadcast(&sls->cond);
 	slurm_mutex_unlock(&sls->lock);
 }
@@ -915,9 +908,7 @@ struct step_launch_state *step_launch_state_create(slurm_step_ctx_t *ctx)
 	sls->resp_port = NULL;
 	sls->abort = false;
 	sls->abort_action_taken = false;
-//	sls->mpi_info->jobid = ctx->step_req->job_id; // MNP PMI old code
-	sls->mpi_info->jobid = ctx->mpi_jobid; // MNP PMI new code
-	debug("!!!!!!!! MNP pid=%d tid=%d in step_launch_state_create, sls->mpi_info->jobid = ctx->mpi_jobid=%d", getpid(), (int)pthread_self(), ctx->mpi_jobid);
+	sls->mpi_info->jobid = ctx->mpi_jobid;
 	sls->mpi_info->stepid = ctx->step_resp->job_step_id;
 	sls->mpi_info->step_layout = layout;
 	sls->mpi_state = NULL;
@@ -1163,7 +1154,6 @@ _launch_handler(struct step_launch_state *sls, slurm_msg_t *resp)
 		}
 	} else {
 		for (i = 0; i < msg->count_of_pids; i++) {
-			debug("******** MNP pid=%d tid=%d in step_launch.c:_launch_handler, i=%d, msg->task_ids[i]=%d", getpid(), (int)pthread_self(), i, msg->task_ids[i]); // MNP PMI
 			bit_set(sls->tasks_started, msg->task_ids[i]);
 		}
 	}
@@ -1180,16 +1170,6 @@ _exit_handler(struct step_launch_state *sls, slurm_msg_t *exit_msg)
 {
 	task_exit_msg_t *msg = (task_exit_msg_t *) exit_msg->data;
 	int i;
-
-	debug("******** MNP pid=%d tid=%d in _exit_handler, sls->mpi_info->jobid=%d", getpid(), (int)pthread_self(), sls->mpi_info->jobid); // MNP PMI
-	// MNP PMI start disable this test to try and fix hang in slurm_step_launch_wait_finish
-//	if ((msg->job_id != sls->mpi_info->jobid) ||
-//	    (msg->step_id != sls->mpi_info->stepid)) {
-//		debug("Received MESSAGE_TASK_EXIT from wrong job: %u.%u",
-//		      msg->job_id, msg->step_id);
-//		return;
-//	}
-	// MNP PMI end disable this test to try and fix hang in slurm_step_launch_wait_finish
 
 	/* Record SIGTERM and SIGKILL termination codes to
 	 * recognize abnormal termination */
@@ -1216,7 +1196,6 @@ _exit_handler(struct step_launch_state *sls, slurm_msg_t *exit_msg)
 static void
 _job_complete_handler(struct step_launch_state *sls, slurm_msg_t *complete_msg)
 {
-	//debug("******** MNP pid=%d: entering api/step_launch _job_complete_handler", getpid());
 	srun_job_complete_msg_t *step_msg =
 		(srun_job_complete_msg_t *) complete_msg->data;
 
@@ -1371,7 +1350,6 @@ _step_missing_handler(struct step_launch_state *sls, slurm_msg_t *missing_msg)
 			      "connections.");
 
 			sls->abort = true;
-			debug("******** MNP pid=%d tid=%d _step_missing_handler, broadcast(&sls->cond) 1", getpid(), (int)pthread_self());
 			pthread_cond_broadcast(&sls->cond);
 			slurm_mutex_unlock(&sls->lock);
 			return;
@@ -1419,7 +1397,6 @@ _step_missing_handler(struct step_launch_state *sls, slurm_msg_t *missing_msg)
 			error("Aborting, step missing and io error on node %d",
 			      node_id);
 			sls->abort = true;
-			debug("******** MNP pid=%d tid=%d _step_missing_handler, broadcast(&sls->cond) 2", getpid(), (int)pthread_self());
 			pthread_cond_broadcast(&sls->cond);
 			break;
 		}
@@ -1447,7 +1424,6 @@ _step_missing_handler(struct step_launch_state *sls, slurm_msg_t *missing_msg)
 			error("Aborting, can not test connection to node %d.",
 			      node_id);
 			sls->abort = true;
-			debug("******** MNP pid=%d tid=%d _step_missing_handler, broadcast(&sls->cond) 3", getpid(), (int)pthread_self());
 			pthread_cond_broadcast(&sls->cond);
 			break;
 		}
@@ -1459,7 +1435,6 @@ _step_missing_handler(struct step_launch_state *sls, slurm_msg_t *missing_msg)
 		 * for receiving a response passes.
 		 */
 		if (test_message_sent) {
-			debug("******** MNP pid=%d tid=%d _step_missing_handler, broadcast(&sls->cond) 4", getpid(), (int)pthread_self());
 			pthread_cond_broadcast(&sls->cond);
 		} else {
 			sls->io_deadline[node_id] = (time_t)NO_VAL;
@@ -1547,7 +1522,6 @@ _handle_msg(void *arg, slurm_msg_t *msg)
 
 	switch (msg->msg_type) {
 	case RESPONSE_LAUNCH_TASKS:
-		//debug("******** MNP pid=%d received RESPONSE_LAUNCH_TASKS msg", getpid());
 		debug2("received task launch");
 		_launch_handler(sls, msg);
 		break;
@@ -1563,7 +1537,6 @@ _handle_msg(void *arg, slurm_msg_t *msg)
 		_exec_prog(msg);
 		break;
 	case SRUN_JOB_COMPLETE:
-		debug("******** MNP %d: step_launch.c:_handle_msg, received SRUN_JOB_COMPLETE", getpid());
 		debug2("received job step complete message");
 		_job_complete_handler(sls, msg);
 		break;
@@ -1633,7 +1606,6 @@ static int _fail_step_tasks(slurm_step_ctx_t *ctx, char *node, int ret_code)
 
 	slurm_mutex_lock(&sls->lock);
 	sls->abort = true;
-	debug("******** MNP pid=%d tid=%d _fail_step_tasks, broadcast(&sls->cond) 1", getpid(), (int)pthread_self());
 	pthread_cond_broadcast(&sls->cond);
 	slurm_mutex_unlock(&sls->lock);
 
@@ -1696,7 +1668,6 @@ static int _launch_tasks(slurm_step_ctx_t *ctx,
 
 	if (ctx->step_resp->use_protocol_ver)
 		msg.protocol_version = ctx->step_resp->use_protocol_ver;
-	debug("******** MNP pid=%d, in _launch_tasks, sending REQUEST_LAUNCH_TASKS msg", getpid());
 
 #ifdef HAVE_FRONT_END
 	slurm_cred_get_args(ctx->step_resp->cred, &cred_args);
@@ -1767,7 +1738,6 @@ static void _print_launch_msg(launch_tasks_request_msg_t *msg,
 	char tmp_str[10], *task_list = NULL;
 	hostlist_t hl = hostlist_create(NULL);
 
-	debug("******** MNP pid=%d, entering _print_launch_msg, msg->tasks_to_launch[nodeid]=%d", getpid(), msg->tasks_to_launch[nodeid]);
 	for (i=0; i<msg->tasks_to_launch[nodeid]; i++) {
 		sprintf(tmp_str, "%u", msg->global_task_ids[nodeid][i]);
 		hostlist_push_host(hl, tmp_str);
@@ -1907,7 +1877,6 @@ step_launch_notify_io_failure(step_launch_state_t *sls, int node_id)
 		error("Aborting, io error and missing step on node %d",
 		      node_id);
 		sls->abort = true;
-		debug("******** MNP pid=%d tid=%d _step_launch_notify_io_failure, broadcast(&sls->cond) 1", getpid(), (int)pthread_self());
 		pthread_cond_broadcast(&sls->cond);
 	} else {
 
@@ -1922,7 +1891,6 @@ step_launch_notify_io_failure(step_launch_state_t *sls, int node_id)
 			error("%s: aborting, io error with slurmstepd on node %d",
 			      __func__, node_id);
 			sls->abort = true;
-			debug("******** MNP pid=%d tid=%d _step_launch_notify_io_failure, broadcast(&sls->cond) 2", getpid(), (int)pthread_self());
 			pthread_cond_broadcast(&sls->cond);
 		}
 	}
@@ -1994,7 +1962,6 @@ _check_io_timeout(void *_sls)
 
 			if (sls->io_deadline[ii] <= now) {
 				sls->abort = true;
-				debug("******** MNP pid=%d tid=%d _check_io_timeout, broadcast(&sls->cond) 1", getpid(), (int)pthread_self());
 				pthread_cond_broadcast(&sls->cond);
 				error(  "Cannot communicate with node %d.  "
 					"Aborting job.", ii);

@@ -729,6 +729,7 @@ typedef struct job_step_specs {
 	uint32_t num_tasks;	/* number of tasks required */
 	uint8_t overcommit;     /* flag, 1 to allow overcommit of processors,
 				   0 to disallow overcommit. default is 0 */
+	uint32_t packstepid[2];	/* jobid and stepid of srun first step */
 	uint16_t plane_size;	/* plane size when task_dist =
 				   SLURM_DIST_PLANE */
 	uint16_t port;		/* port to contact initiating srun */
@@ -763,10 +764,12 @@ typedef struct launch_tasks_request_msg {
 	uint16_t  ntasks_per_core; /* number of tasks to invoke on each core */
 	uint16_t  ntasks_per_socket;/* number of tasks to invoke on
 				     * each socket */
-	uint32_t  mpi_jobid;	/* MPI jobid (same for all steps) */ // MNP PMI
-	uint32_t  mpi_ntasks;	/* number of MPI tasks in all steps */ // MNP PMI
-	uint32_t  mpi_nnodes;	/* number of MPI nodes in all steps */ // MNP PMI
-	uint32_t  mpi_stepftaskid; /* first MPI taskid for this step */ // MNP PMI
+	uint32_t  mpi_jobid;	/* MPI jobid (same for all steps) */
+	uint32_t  mpi_ntasks;	/* number of MPI tasks in all steps */
+	uint32_t  mpi_nnodes;	/* number of MPI nodes in all steps */
+	uint32_t  mpi_stepfnodeid; /* first MPI nodeid for this step */
+	uint32_t  mpi_stepftaskid; /* first MPI taskid for this step */
+
 	uint32_t  uid;
 	char     *user_name;
 	uint32_t  gid;
@@ -837,6 +840,8 @@ typedef struct launch_tasks_request_msg {
 	dynamic_plugin_data_t *select_jobinfo; /* select context, opaque data */
 	char *alias_list;	/* node name/address/hostnamne aliases */
 	char *partition;	/* partition that job is running in */
+	uint32_t packstepid[2]; /* jobid of srun first step of the jobpack
+				 * & stepid of jobpack member */
 } launch_tasks_request_msg_t;
 
 typedef struct task_user_managed_io_msg {

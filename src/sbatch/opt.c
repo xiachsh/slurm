@@ -206,6 +206,7 @@ enum wrappers {
 extern bool packjob;
 extern bool packleader;
 extern uint32_t group_number;
+extern uint32_t pack_desc_count;
 extern char *pack_job_id;
 
 /*---- global variables, defined in opt.h ----*/
@@ -444,7 +445,7 @@ static void _opt_default()
 
 	opt.mcs_label		= NULL;
 
-	opt.resv_port   = 0;
+	opt.resv_port = 0;
 }
 
 /*---[ env var processing ]-----------------------------------------------*/
@@ -1938,7 +1939,11 @@ static void _set_options(int argc, char **argv)
 				opt.job_flags |= NO_KILL_INV_DEP;
 			break;
 		case LONG_OPT_RESV_PORT:
-			opt.resv_port = 1;
+			if (pack_desc_count < 2)
+				info("WARNING - option --resv-port ignored, "
+				     "allowed for Job-Packs only");
+			else
+				opt.resv_port = 1;
 			break;
 		default:
 			if (spank_process_option (opt_char, optarg) < 0) {

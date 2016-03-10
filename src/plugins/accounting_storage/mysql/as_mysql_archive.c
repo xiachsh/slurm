@@ -92,7 +92,7 @@ typedef struct {
 	char *name;
 	char *nodelist;
 	char *node_inx;
-	char *packid;							/* wjb */
+	char *packid;
 	char *partition;
 	char *priority;
 	char *qos;
@@ -158,8 +158,8 @@ typedef struct {
 	char *nodelist;
 	char *nodes;
 	char *node_inx;
-	char *packjobid;						/* wjb */
-	char *packstepid;						/* wjb */
+	char *packjobid;
+	char *packstepid;
 	char *period_end;
 	char *period_start;
 	char *period_suspended;
@@ -232,7 +232,7 @@ static char *job_req_inx[] = {
 	"job_name",
 	"nodelist",
 	"node_inx",
-	"packid", 							/* wjb */
+	"packid",
 	"`partition`",
 	"priority",
 	"id_qos",
@@ -272,7 +272,7 @@ enum {
 	JOB_REQ_NAME,
 	JOB_REQ_NODELIST,
 	JOB_REQ_NODE_INX,
-	JOB_REQ_PACKID,							/* wjb */
+	JOB_REQ_PACKID,
 	JOB_REQ_PARTITION,
 	JOB_REQ_PRIORITY,
 	JOB_REQ_QOS,
@@ -369,8 +369,8 @@ static char *step_req_inx[] = {
 	"max_disk_write_node",
 	"ave_disk_write",
 	"tres_alloc",
-	"packjobid",							/* wjb */
-	"packstepid",							/* wjb */
+	"packjobid",
+	"packstepid",
 };
 
 
@@ -423,8 +423,8 @@ enum {
 	STEP_REQ_MAX_DISK_WRITE_NODE,
 	STEP_REQ_AVE_DISK_WRITE,
 	STEP_REQ_TRES,
-	STEP_REQ_PACKJOBID,						/* wjb */
-	STEP_REQ_PACKSTEPID,						/* wjb */
+	STEP_REQ_PACKJOBID,
+	STEP_REQ_PACKSTEPID,
 	STEP_REQ_COUNT,
 };
 
@@ -503,7 +503,7 @@ static int high_buffer_size = (1024 * 1024);
 /* 	xfree(object->name); */
 /* 	xfree(object->nodelist); */
 /* 	xfree(object->node_inx); */
-/*	xfree(object->packid); */					/* wjb */
+/*	xfree(object->packid); */
 /* 	xfree(object->partition); */
 /* 	xfree(object->priority); */
 /* 	xfree(object->qos); */
@@ -570,8 +570,8 @@ static int high_buffer_size = (1024 * 1024);
 /* 	xfree(object->nodelist); */
 /* 	xfree(object->nodes); */
 /* 	xfree(object->node_inx); */
-/*	xfree(object->packjobid); */					/* wjb */
-/*	xfree(object->packstepid); */					/* wjb */
+/*	xfree(object->packjobid); */
+/*	xfree(object->packstepid); */
 /* 	xfree(object->period_end); */
 /* 	xfree(object->period_start); */
 /* 	xfree(object->period_suspended); */
@@ -665,7 +665,7 @@ static void _pack_local_job(local_job_t *object,
 	packstr(object->name, buffer);
 	packstr(object->nodelist, buffer);
 	packstr(object->node_inx, buffer);
-	packstr(object->packid, buffer);				/* wjb */
+	packstr(object->packid, buffer);
 	packstr(object->partition, buffer);
 	packstr(object->priority, buffer);
 	packstr(object->qos, buffer);
@@ -732,7 +732,7 @@ static int _unpack_local_job(local_job_t *object,
 		unpackstr_ptr(&object->name, &tmp32, buffer);
 		unpackstr_ptr(&object->nodelist, &tmp32, buffer);
 		unpackstr_ptr(&object->node_inx, &tmp32, buffer);
-		unpackstr_ptr(&object->packid, &tmp32, buffer);		/* wjb */
+		unpackstr_ptr(&object->packid, &tmp32, buffer);
 		unpackstr_ptr(&object->partition, &tmp32, buffer);
 		unpackstr_ptr(&object->priority, &tmp32, buffer);
 		unpackstr_ptr(&object->qos, &tmp32, buffer);
@@ -944,8 +944,8 @@ static void _pack_local_step(local_step_t *object,
 	packstr(object->nodelist, buffer);
 	packstr(object->nodes, buffer);
 	packstr(object->node_inx, buffer);
-	packstr(object->packjobid, buffer);				/* wjb */
-	packstr(object->packstepid, buffer);				/* wjb */
+	packstr(object->packjobid, buffer);
+	packstr(object->packstepid, buffer);
 	packstr(object->period_end, buffer);
 	packstr(object->period_start, buffer);
 	packstr(object->period_suspended, buffer);
@@ -1005,8 +1005,8 @@ static int _unpack_local_step(local_step_t *object,
 		unpackstr_ptr(&object->nodelist, &tmp32, buffer);
 		unpackstr_ptr(&object->nodes, &tmp32, buffer);
 		unpackstr_ptr(&object->node_inx, &tmp32, buffer);
-		unpackstr_ptr(&object->packjobid, &tmp32, buffer);	/* wjb */
-		unpackstr_ptr(&object->packstepid, &tmp32, buffer);	/* wjb */
+		unpackstr_ptr(&object->packjobid, &tmp32, buffer);
+		unpackstr_ptr(&object->packstepid, &tmp32, buffer);
 		unpackstr_ptr(&object->period_end, &tmp32, buffer);
 		unpackstr_ptr(&object->period_start, &tmp32, buffer);
 		unpackstr_ptr(&object->period_suspended, &tmp32, buffer);
@@ -1807,7 +1807,7 @@ static Buf _pack_archive_jobs(MYSQL_RES *result, char *cluster_name,
 		job.name = row[JOB_REQ_NAME];
 		job.nodelist = row[JOB_REQ_NODELIST];
 		job.node_inx = row[JOB_REQ_NODE_INX];
-		job.packid = row[JOB_REQ_PACKID];			/* wjb */
+		job.packid = row[JOB_REQ_PACKID];
 		job.partition = row[JOB_REQ_PARTITION];
 		job.priority = row[JOB_REQ_PRIORITY];
 		job.qos = row[JOB_REQ_QOS];
@@ -1883,7 +1883,7 @@ static char *_load_jobs(uint16_t rpc_version, Buf buffer,
 			   object.name,
 			   object.nodelist,
 			   object.node_inx,
-			   object.packid,				/* wjb */
+			   object.packid,
 			   object.partition,
 			   object.priority,
 			   object.qos,
@@ -2064,8 +2064,8 @@ static Buf _pack_archive_steps(MYSQL_RES *result, char *cluster_name,
 		step.nodelist = row[STEP_REQ_NODELIST];
 		step.nodes = row[STEP_REQ_NODES];
 		step.node_inx = row[STEP_REQ_NODE_INX];
-		step.packjobid = row[STEP_REQ_PACKJOBID];		/* wjb */
-		step.packstepid = row[STEP_REQ_PACKSTEPID];		/* wjb */
+		step.packjobid = row[STEP_REQ_PACKJOBID];
+		step.packstepid = row[STEP_REQ_PACKSTEPID];
 		step.period_end = row[STEP_REQ_END];
 		step.period_start = row[STEP_REQ_START];
 		step.period_suspended = row[STEP_REQ_SUSPENDED];
@@ -2166,8 +2166,8 @@ static char *_load_steps(uint16_t rpc_version, Buf buffer,
 			   object.ave_disk_write,
 			   object.req_cpufreq_min,
 			   object.req_cpufreq_gov,
-			   object.packjobid,				/* wjb */
-			   object.packstepid,				/* wjb */
+			   object.packjobid,
+			   object.packstepid,
 			   object.tres_alloc_str);
 
 		if (rpc_version < SLURM_15_08_PROTOCOL_VERSION)

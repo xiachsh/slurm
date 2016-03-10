@@ -2349,6 +2349,17 @@ step_create(job_step_create_request_msg_t *step_specs,
 	step_ptr->state      = JOB_RUNNING;
 	step_ptr->step_id    = job_ptr->next_step_id++;
 
+	if (step_specs->packstepid[0] == 0) {
+		step_ptr->packstepid[0] = step_specs->job_id;
+		step_ptr->packstepid[1] = step_ptr->step_id;
+	} else {
+		step_ptr->packstepid[0] = step_specs->packstepid[0];
+		step_ptr->packstepid[1] = step_specs->packstepid[1];
+	}
+	debug2("JPCK: step_create set PackStepID %u.%u for JobID %u",
+	       step_ptr->packstepid[0], step_ptr->packstepid[1],
+	       job_ptr->job_id);
+
 	/* Here is where the node list is set for the step */
 	if (step_specs->node_list &&
 	    ((step_specs->task_dist & SLURM_DIST_STATE_BASE) ==
@@ -2823,6 +2834,8 @@ static void _pack_ctld_job_step_info(struct step_record *step_ptr, Buf buffer,
 		select_g_select_jobinfo_pack(step_ptr->select_jobinfo, buffer,
 					     protocol_version);
 		packstr(step_ptr->tres_fmt_alloc_str, buffer);
+		pack32(step_ptr->packstepid[0], buffer);
+		pack32(step_ptr->packstepid[1], buffer);
 	} else if (protocol_version >= SLURM_14_11_PROTOCOL_VERSION) {
 		uint32_t utmp32 = 0;
 		pack32(step_ptr->job_ptr->array_job_id, buffer);

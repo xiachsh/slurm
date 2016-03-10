@@ -46,7 +46,7 @@ int _sstat_query(slurm_step_layout_t *step_layout, uint32_t job_id,
 int _process_results();
 int _do_stat(uint32_t jobid, uint32_t stepid, char *nodelist,
 	     uint32_t req_cpufreq_min, uint32_t req_cpufreq_max,
-	     uint32_t req_cpufreq_gov);
+	     uint32_t req_cpufreq_gov, uint32_t packjobid, uint32_t packstepid);
 
 /*
  * Globals
@@ -84,6 +84,8 @@ print_field_t fields[] = {
 	{10, "MinCPUTask", print_fields_uint, PRINT_MINCPUTASK},
 	{20, "Nodelist", print_fields_str, PRINT_NODELIST},
 	{8, "NTasks", print_fields_uint, PRINT_NTASKS},
+	{20, "PackJobID", print_fields_uint, PRINT_PACKJOBID},
+	{20, "PackStepID", print_fields_uint, PRINT_PACKSTEPID},
 	{20, "Pids", print_fields_str, PRINT_PIDS},
 	{10, "ReqCPUFreq", print_fields_str, PRINT_REQ_CPUFREQ_MIN}, /*vestigial*/
 	{13, "ReqCPUFreqMin", print_fields_str, PRINT_REQ_CPUFREQ_MIN},
@@ -100,7 +102,7 @@ int field_count = 0;
 
 int _do_stat(uint32_t jobid, uint32_t stepid, char *nodelist,
 	     uint32_t req_cpufreq_min, uint32_t req_cpufreq_max,
-	     uint32_t req_cpufreq_gov)
+	     uint32_t req_cpufreq_gov, uint32_t packjobid, uint32_t packstepid)
 {
 	job_step_stat_response_msg_t *step_stat_response = NULL;
 	int rc = SLURM_SUCCESS;
@@ -142,6 +144,8 @@ int _do_stat(uint32_t jobid, uint32_t stepid, char *nodelist,
 	step.req_cpufreq_gov = req_cpufreq_gov;
 	step.stepname = NULL;
 	step.state = JOB_RUNNING;
+	step.packstepid[0] = packjobid;
+	step.packstepid[1] = packstepid;
 
 	hl = hostlist_create(NULL);
 	itr = list_iterator_create(step_stat_response->stats_list);
@@ -206,6 +210,8 @@ int main(int argc, char **argv)
 	uint32_t req_cpufreq_max = NO_VAL;
 	uint32_t req_cpufreq_gov = NO_VAL;
 	uint32_t stepid = NO_VAL;
+	uint32_t packjobid = NO_VAL;
+	uint32_t packstepid = NO_VAL;
 	slurmdb_selected_step_t *selected_step = NULL;
 
 #ifdef HAVE_ALPS_CRAY
@@ -283,7 +289,9 @@ int main(int argc, char **argv)
 					 step_ptr->job_steps[i].nodes,
 					 step_ptr->job_steps[i].cpu_freq_min,
 					 step_ptr->job_steps[i].cpu_freq_max,
-					 step_ptr->job_steps[i].cpu_freq_gov);
+					 step_ptr->job_steps[i].cpu_freq_gov,
+					 step_ptr->job_steps[i].packstepid[0],
+					 step_ptr->job_steps[i].packstepid[1]);
 			}
 			slurm_free_job_step_info_response_msg(step_ptr);
 			continue;
@@ -307,9 +315,12 @@ int main(int argc, char **argv)
 			req_cpufreq_min = step_ptr->job_steps[0].cpu_freq_min;
 			req_cpufreq_max = step_ptr->job_steps[0].cpu_freq_max;
 			req_cpufreq_gov = step_ptr->job_steps[0].cpu_freq_gov;
+			packjobid = step_ptr->job_steps[0].packstepid[0];
+			packstepid = step_ptr->job_steps[0].packstepid[1];
 		}
 		_do_stat(selected_step->jobid, stepid, nodelist,
-			 req_cpufreq_min, req_cpufreq_max, req_cpufreq_gov);
+			 req_cpufreq_min, req_cpufreq_max, req_cpufreq_gov,
+			 packjobid, packstepid);
 		if (free_nodelist && nodelist)
 			free(nodelist);
 	}
