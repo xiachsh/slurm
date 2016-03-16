@@ -76,7 +76,7 @@
 #include "kvs.h"
 #include "ring.h"
 
-#define PMI2_SOCK_ADDR_FMT "%s/sock.pmi2.%u.%u"
+#define PMI2_SOCK_ADDR_FMT "/tmp/sock.pmi2.%u.%u"
 // MNP PMI start
 #define VECT_MAX_SIZE 100
 // MNP PMI end
@@ -362,7 +362,6 @@ _setup_stepd_sockets(const stepd_step_rec_t *job, char ***env)
 {
 	struct sockaddr_un sa;
 	int i;
-	char *spool;
 
 	info("******** MNP pid=%d, entering pmi2/setup.c:_setup_stepd_sockets", getpid());
 	debug("mpi/pmi2: setup sockets");
@@ -744,7 +743,6 @@ _setup_srun_tree_info(const mpi_plugin_client_info_t *job)
 {
 	char *p;
 	uint16_t p_port;
-	char *spool;
 
 	memset(&tree_info, 0, sizeof(tree_info));
 
@@ -764,10 +762,8 @@ _setup_srun_tree_info(const mpi_plugin_client_info_t *job)
 	} else
 		tree_info.srun_addr = NULL;
 
-	spool = slurm_get_slurmd_spooldir();
 	snprintf(tree_sock_addr, 128, PMI2_SOCK_ADDR_FMT,
-		 spool, job->jobid, job->stepid);
-	xfree(spool);
+		 job->jobid, job->stepid);
 
 	/* init kvs seq to 0. TODO: reduce array size */
 	tree_info.children_kvs_seq = xmalloc(sizeof(uint32_t) *

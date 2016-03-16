@@ -8865,6 +8865,7 @@ _pack_job_desc_msg(job_desc_msg_t * job_desc_ptr, Buf buffer,
 
 		pack16(job_desc_ptr->alloc_resp_port, buffer);
 		pack16(job_desc_ptr->other_port, buffer);
+		pack32(job_desc_ptr->pack_leader, buffer);
 		packstr(job_desc_ptr->network, buffer);
 		pack_time(job_desc_ptr->begin_time, buffer);
 		pack_time(job_desc_ptr->end_time, buffer);
