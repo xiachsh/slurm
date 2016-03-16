@@ -12429,6 +12429,7 @@ _pack_batch_job_launch_msg(batch_job_launch_msg_t * msg, Buf buffer,
 		packstr(msg->qos, buffer);
 		packstr(msg->resv_name, buffer);
 		pack32(msg->profile, buffer);
+		pack32(msg->group_number, buffer);
 	} else if (protocol_version >= SLURM_15_08_PROTOCOL_VERSION) {
 		pack32(msg->job_id, buffer);
 		pack32(msg->step_id, buffer);
@@ -12490,8 +12491,8 @@ _pack_batch_job_launch_msg(batch_job_launch_msg_t * msg, Buf buffer,
 		packstr(msg->qos, buffer);
 		packstr(msg->resv_name, buffer);
 		packstr(msg->resv_ports, buffer);
-
-	} else if (protocol_version >= SLURM_15_08_PROTOCOL_VERSION) {
+		pack32(msg->group_number, buffer);
+	} else if (protocol_version >= SLURM_14_11_PROTOCOL_VERSION) {
 		pack32(msg->job_id, buffer);
 		pack32(msg->step_id, buffer);
 		pack32(msg->uid, buffer);
@@ -12655,6 +12656,7 @@ _unpack_batch_job_launch_msg(batch_job_launch_msg_t ** msg, Buf buffer,
 				       &uint32_tmp,
 				       buffer);
 		safe_unpack32(&launch_msg_ptr->profile, buffer);
+		safe_unpack32(&launch_msg_ptr->group_number, buffer);
 	} else if (protocol_version >=  SLURM_15_08_PROTOCOL_VERSION) {
 		safe_unpack32(&launch_msg_ptr->job_id, buffer);
 		safe_unpack32(&launch_msg_ptr->step_id, buffer);
@@ -12748,8 +12750,8 @@ _unpack_batch_job_launch_msg(batch_job_launch_msg_t ** msg, Buf buffer,
 		safe_unpackstr_xmalloc(&launch_msg_ptr->resv_ports,
 				       &uint32_tmp,
 				       buffer);
-
-	} else if (protocol_version >= SLURM_15_08_PROTOCOL_VERSION) {
+		safe_unpack32(&launch_msg_ptr->group_number, buffer);
+	} else if (protocol_version >= SLURM_14_11_PROTOCOL_VERSION) {
 		safe_unpack32(&launch_msg_ptr->job_id, buffer);
 		safe_unpack32(&launch_msg_ptr->step_id, buffer);
 		safe_unpack32(&launch_msg_ptr->uid, buffer);

@@ -1022,6 +1022,7 @@ typedef struct batch_job_launch_msg {
 	uint32_t pelog_env_size;/* size of pelog_env */
 	char *resv_name;        /* job's reservation */
         char *resv_ports;       /* reserve ports for jobpack nodes */
+        uint32_t group_number;  /* jobpack group number index */
 } batch_job_launch_msg_t;
 
 typedef struct job_id_request_msg {
