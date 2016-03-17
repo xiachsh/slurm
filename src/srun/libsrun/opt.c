@@ -67,13 +67,17 @@
 #include <stdarg.h>		/* va_start   */
 #include <stdio.h>
 #include <stdlib.h>		/* getenv     */
+#include <errno.h>
 #include <sys/param.h>		/* MAXPATHLEN */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 
+#include <slurm/slurm_errno.h>
+
 #include "src/common/cpu_frequency.h"
+#include "src/common/hostlist.h"
 #include "src/common/list.h"
 #include "src/common/log.h"
 #include "src/common/optz.h"
@@ -213,6 +217,7 @@
 #define LONG_OPT_ACCEL_BIND      0x161
 #define LONG_OPT_MCS_LABEL       0x165
 #define LONG_OPT_DEADLINE        0x166
+#define LONG_OPT_TASK_GROUP      0x167
 
 extern char **environ;
 
@@ -449,6 +454,7 @@ static void _opt_default(void)
 	opt.jobid    = NO_VAL;
 	opt.jobid_set = false;
 	opt.dependency = NULL;
+	opt.pack_group = NULL;
 	opt.account  = NULL;
 	opt.comment  = NULL;
 	opt.qos      = NULL;
@@ -500,6 +506,7 @@ static void _opt_default(void)
 	opt.hostfile	    = NULL;
 	opt.nodelist	    = NULL;
 	opt.exc_nodes	    = NULL;
+	opt.max_launch_time = 120;/* 120 seconds to launch job             */
 	opt.max_exit_timeout= 60; /* Warn user 60 seconds after task exit */
 	/* Default launch msg timeout           */
 	opt.msg_timeout     = slurm_get_msg_timeout();
@@ -533,6 +540,7 @@ static void _opt_default(void)
 	 * Reset some default values if running under a parallel debugger
 	 */
 	if ((opt.parallel_debug = _under_parallel_debugger())) {
+		opt.max_launch_time = 120;
 		opt.max_threads     = 1;
 		pmi_server_max_threads(opt.max_threads);
 		opt.msg_timeout     = 15;
@@ -555,6 +563,8 @@ static void _opt_default(void)
 	opt.priority = 0;
 	opt.power_flags = 0;
 	opt.mcs_label = NULL;
+	opt.ngrpidx = 0;
+	opt.groupidx = NULL;
 }
 
 /*---[ env var processing ]-----------------------------------------------*/
@@ -644,6 +654,7 @@ env_vars_t env_vars[] = {
 {"SLURM_STDINMODE",     OPT_STRING,     &opt.ifname,        NULL             },
 {"SLURM_STDOUTMODE",    OPT_STRING,     &opt.ofname,        NULL             },
 {"SLURM_TASK_EPILOG",   OPT_STRING,     &opt.task_epilog,   NULL             },
+{"SLURM_PACK_GROUP",    OPT_STRING,     &opt.pack_group,    NULL             },
 {"SLURM_TASK_PROLOG",   OPT_STRING,     &opt.task_prolog,   NULL             },
 {"SLURM_THREAD_SPEC",   OPT_THREAD_SPEC,NULL,               NULL             },
 {"SLURM_THREADS",       OPT_INT,        &opt.max_threads,   NULL             },
@@ -780,6 +791,8 @@ _process_env_var(env_vars_t *e, const char *val)
 			error("\"%s=%s\" -- invalid value, ignoring...",
 			      e->var, val);
 		}
+		opt.exclusive = true;   //nlk
+		opt.shared = 0;  //nlk
 		break;
 
 	case OPT_EXPORT:
@@ -882,6 +895,83 @@ _process_env_var(env_vars_t *e, const char *val)
 	}
 }
 
+
+/*
+ * create array of pack_group indexes in opt_t
+ */
+static void
+_parse_pack_group(const char *pack_group)
+{
+
+	struct _range *ranges = NULL;
+	int capacity = 0;
+	int nr, err, tglen, i, j, k;
+	char *p, *end;
+	char cur_tok[1024];
+	uint32_t grp;
+	if (pack_group == NULL)
+		return;
+
+	tglen = strlen(pack_group);
+	if (pack_group[0] != '[') {
+		if (pack_group[tglen-1] == ']') {
+			error("JPCK: --pack-group=%s has unmatched braces",
+					pack_group);
+			return;
+		}
+		if (strchr(pack_group,',') || strchr(pack_group,'-')) {
+			error("JPCK: --pack-group=%s has , or - without braces",
+					pack_group);
+			return;
+
+		}
+		grp = (uint32_t) strtol(pack_group, &end, 10);
+		opt.ngrpidx = 1;
+		xfree(opt.groupidx);
+		opt.groupidx = (uint32_t *) xmalloc(opt.ngrpidx * sizeof(uint32_t));
+		opt.groupidx[0] = grp;
+		info("JPCK: groupidx[0]=%d", 0);
+		return;
+	}
+
+	strncpy(cur_tok, pack_group, 1024);
+	if ((p = strrchr(cur_tok, '[')) != NULL) {
+		char *q;
+		*p++ = '\0';
+		if ((q = strchr(p, ']'))) {
+			if (q[1] != '\0')
+				goto error;
+			*q = '\0';
+			nr = parse_range_list(p, &ranges, &capacity, 1024, 1);
+			if (nr < 0)
+				goto error;
+			for (i=0; i<nr; i++) {
+				info("JPCK: nr=%d range[%d] lo=%ld,hi=%ld,width=%d",nr,i,ranges[i].lo,ranges[i].hi,ranges[i].width);
+			}
+		}
+	}
+	xfree(opt.groupidx);
+	opt.ngrpidx = 0;
+	for (i=0; i < nr; i++) {
+		opt.ngrpidx += ((ranges[i].hi - ranges[i].lo) + 1);
+	}
+	opt.groupidx = (uint32_t *) xmalloc(opt.ngrpidx * sizeof(uint32_t));
+	k = 0;
+	for (i=0; i < nr; i++) {
+		for (j=ranges[i].lo; j<=ranges[i].hi; j++) {
+			opt.groupidx[k] = j;
+			info("JPCK: groupidx[%d]=%d", k, j);
+			k++;
+		}
+	}
+	xfree(ranges);
+	return;
+error:
+	err = errno = EINVAL;
+	xfree(ranges);
+	slurm_seterrno(errno);
+}
+
 /*
  *  Get a decimal integer from arg.
  *
@@ -960,7 +1050,7 @@ static void _set_options(const int argc, char **argv)
 		{"deadline",         required_argument, 0, LONG_OPT_DEADLINE},
 		{"debugger-test",    no_argument,       0, LONG_OPT_DEBUG_TS},
 		{"epilog",           required_argument, 0, LONG_OPT_EPILOG},
-		{"exclusive",        optional_argument, 0, LONG_OPT_EXCLUSIVE},
+		{"exclusive",        no_argument,       0, LONG_OPT_EXCLUSIVE},
 		{"export",           required_argument, 0, LONG_OPT_EXPORT},
 		{"get-user-env",     optional_argument, 0, LONG_OPT_GET_USER_ENV},
 		{"gid",              required_argument, 0, LONG_OPT_GID},
@@ -972,11 +1062,12 @@ static void _set_options(const int argc, char **argv)
 		{"jobid",            required_argument, 0, LONG_OPT_JOBID},
 		{"linux-image",      required_argument, 0, LONG_OPT_LINUX_IMAGE},
 		{"launch-cmd",       no_argument,       0, LONG_OPT_LAUNCH_CMD},
-		{"launcher-opts",    required_argument, 0, LONG_OPT_LAUNCHER_OPTS},
+		{"launcher-opts",      required_argument, 0, LONG_OPT_LAUNCHER_OPTS},
 		{"mail-type",        required_argument, 0, LONG_OPT_MAIL_TYPE},
 		{"mail-user",        required_argument, 0, LONG_OPT_MAIL_USER},
 		{"max-exit-timeout", required_argument, 0, LONG_OPT_XTO},
 		{"mcs-label",        required_argument, 0, LONG_OPT_MCS_LABEL},
+		{"max-launch-time",  required_argument, 0, LONG_OPT_LAUNCH},   //nlk
 		{"mem",              required_argument, 0, LONG_OPT_MEM},
 		{"mem-per-cpu",      required_argument, 0, LONG_OPT_MEM_PER_CPU},
 		{"mem_bind",         required_argument, 0, LONG_OPT_MEM_BIND},
@@ -1012,6 +1103,7 @@ static void _set_options(const int argc, char **argv)
 		{"sockets-per-node", required_argument, 0, LONG_OPT_SOCKETSPERNODE},
 		{"switches",         required_argument, 0, LONG_OPT_REQ_SWITCH},
 		{"task-epilog",      required_argument, 0, LONG_OPT_TASK_EPILOG},
+		{"pack-group",       required_argument, 0, LONG_OPT_PACK_GROUP},
 		{"task-prolog",      required_argument, 0, LONG_OPT_TASK_PROLOG},
 		{"tasks-per-node",   required_argument, 0, LONG_OPT_NTASKSPERNODE},
 		{"test-only",        no_argument,       0, LONG_OPT_TEST_ONLY},
@@ -1301,6 +1393,8 @@ static void _set_options(const int argc, char **argv)
 				error("invalid exclusive option %s", optarg);
 				exit(error_exit);
 			}
+			opt.exclusive = true;  //nlk
+                        opt.shared = 0;  //nlk
                         break;
 		case LONG_OPT_EXPORT:
 			xfree(opt.export_env);
@@ -1413,6 +1507,10 @@ static void _set_options(const int argc, char **argv)
 			opt.msg_timeout =
 				_get_int(optarg, "msg-timeout", true);
 			break;
+		case LONG_OPT_LAUNCH:
+			opt.max_launch_time =
+				_get_int(optarg, "max-launch-time", true);
+			break;
 		case LONG_OPT_XTO:
 			opt.max_exit_timeout =
 				_get_int(optarg, "max-exit-timeout", true);
@@ -1449,6 +1547,7 @@ static void _set_options(const int argc, char **argv)
 			/* make other parameters look like debugger
 			 * is really attached */
 			opt.parallel_debug   = true;
+			opt.max_launch_time = 120;
 			opt.max_threads     = 1;
 			pmi_server_max_threads(opt.max_threads);
 			opt.msg_timeout     = 15;
@@ -1768,6 +1867,12 @@ static void _set_options(const int argc, char **argv)
 		case LONG_OPT_COMPRESS:
 			opt.compress = parse_compress_type(optarg);
 			break;
+		case LONG_OPT_PACK_GROUP:
+			xfree(opt.pack_group);
+			opt.pack_group = xstrdup(optarg);
+			info("JPCK: PACK-GROUP srun-opt pack_group=%s",opt.pack_group);
+			_parse_pack_group(opt.pack_group);
+			break;
 		default:
 			if (spank_process_option (opt_char, optarg) < 0) {
 				exit(error_exit);
@@ -1796,8 +1901,6 @@ static void _opt_args(int argc, char **argv)
 {
 	int i, command_pos = 0, command_args = 0;
 	char **rest = NULL;
-	char *fullpath, *launch_params;
-	bool test_exec = false;
 
 	_set_options(argc, argv);
 
@@ -1899,21 +2002,13 @@ static void _opt_args(int argc, char **argv)
 	}
 	opt.argv[i] = NULL;	/* End of argv's (for possible execv) */
 
-	if (getenv("SLURM_TEST_EXEC")) {
-		test_exec = true;
-	} else {
-		launch_params = slurm_get_launch_params();
-		if (launch_params && strstr(launch_params, "test_exec"))
-			test_exec = true;
-		xfree(launch_params);
-	}
 #if defined HAVE_BG && !defined HAVE_BG_L_P
 	/* BGQ's runjob command required a fully qualified path */
 	if (!launch_g_handle_multi_prog_verify(command_pos) &&
 	    (opt.argc > command_pos)) {
 		if ((fullpath = search_path(opt.cwd,
 					    opt.argv[command_pos],
-					    false, X_OK, test_exec))) {
+					    false, X_OK))) {
 			xfree(opt.argv[command_pos]);
 			opt.argv[command_pos] = fullpath;
 		}
@@ -2616,6 +2711,8 @@ static void _opt_list(void)
 	info("ntasks-per-socket : %d", opt.ntasks_per_socket);
 	info("ntasks-per-core   : %d", opt.ntasks_per_core);
 	info("plane_size        : %u", opt.plane_size);
+	info("pack_group        : %s", opt.pack_group);
+
 	if (opt.core_spec == (uint16_t) NO_VAL)
 		info("core-spec         : NA");
 	else if (opt.core_spec & CORE_SPEC_THREAD) {
@@ -2724,7 +2821,7 @@ static void _usage(void)
 "            [--core-spec=cores] [--thread-spec=threads]\n"
 "            [--bb=burst_buffer_spec] [--bbf=burst_buffer_file]\n"
 "            [--bcast=<dest_path>] [--compress[=library]]\n"
-"            [--acctg-freq=<datatype>=<interval>]\n"
+"            [--acctg-freq=<datatype>=<interval>] [--pack-group]\n"
 "            [-w hosts...] [-x hosts...] executable [args...]\n");
 
 }
@@ -2819,6 +2916,7 @@ static void _help(void)
 "      --switches=max-switches{@max-time-to-wait}\n"
 "                              Optimum switches and max time to wait for optimum\n"
 "      --task-epilog=program   run \"program\" after launching task\n"
+"      --pack-group=[g[-g]]    list of pack groups to launch\n"
 "      --task-prolog=program   run \"program\" before launching task\n"
 "      --thread-spec=threads   count of reserved threads\n"
 "  -T, --threads=threads       set srun launch fanout\n"
@@ -2844,7 +2942,7 @@ static void _help(void)
 "  -Z, --no-allocate           don't allocate nodes (must supply -w)\n"
 "\n"
 "Consumable resources related options:\n"
-"      --exclusive[=user]      allocate nodes in exclusive mode when\n"
+"      --exclusive             allocate nodes in exclusive mode when\n"
 "                              cpu consumable resource is enabled\n"
 "                              or don't share CPUs for job steps\n"
 "      --exclusive[=mcs]       allocate nodes in exclusive mode when\n"

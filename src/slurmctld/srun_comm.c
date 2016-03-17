@@ -132,6 +132,7 @@ extern void srun_allocate (uint32_t job_id)
 				job_ptr->select_jobinfo);
 		msg_arg->error_code	= SLURM_SUCCESS;
 
+		info("RBS: srun_allocate. (b4 agent_launch) RESPONSE_RESOURCE_ALLOCATION %d",job_ptr->job_id);
 		_srun_agent_launch(addr, job_ptr->alloc_node,
 				   RESPONSE_RESOURCE_ALLOCATION, msg_arg,
 				   job_ptr->start_protocol_ver);

@@ -1144,6 +1144,7 @@ static void _slurm_rpc_allocate_resources(slurm_msg_t * msg)
 
 		slurm_msg_t_init(&response_msg);
 		response_msg.flags = msg->flags;
+		info("JGRP: proc rpc -- req_alloc, send node RESPONSE_RESOURCE_ALLOC, job=%d nodes=%s", job_ptr->job_id, job_ptr->nodes);
 		response_msg.protocol_version = msg->protocol_version;
 		response_msg.msg_type = RESPONSE_RESOURCE_ALLOCATION;
 		response_msg.data = &alloc_msg;
@@ -1879,6 +1880,7 @@ static void _slurm_rpc_complete_job_allocation(slurm_msg_t * msg)
 
 	/* do RPC call */
 	/* Mark job and/or job step complete */
+
 	error_code = job_complete(comp_msg->job_id, uid,
 				  false, false, comp_msg->job_rc);
 	if (error_code)
@@ -2229,6 +2231,7 @@ static void _slurm_rpc_job_step_create(slurm_msg_t * msg)
 				 msg->protocol_version);
 
 	if (error_code == SLURM_SUCCESS) {
+		info("JGRP: rpc_job_step_create -- make_step_cred jobid=%d",req_step_msg->job_id );
 		error_code = _make_step_cred(step_rec, &slurm_cred,
 					     step_rec->start_protocol_ver);
 		ext_sensors_g_get_stepstartdata(step_rec);
@@ -4668,6 +4671,7 @@ static int _launch_batch_step(job_desc_msg_t *job_desc_msg, uid_t uid,
 		return ESLURM_INVALID_JOB_ID;
 	}
 
+	info("JGRP: launch_batch_step (mapping job_rec into launch msg) -- init_launch_msg jobid=%d",job_ptr->job_id );
 	/* Initialization of data structures */
 	launch_msg_ptr = (batch_job_launch_msg_t *)
 		xmalloc(sizeof(batch_job_launch_msg_t));
