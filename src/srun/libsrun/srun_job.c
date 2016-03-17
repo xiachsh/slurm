@@ -103,6 +103,7 @@ typedef struct allocation_info {
 	uint32_t                stepid;
 } allocation_info_t;
 
+
 static int shepard_fd = -1;
 static pthread_t signal_thread = (pthread_t) 0;
 static int pty_sigarray[] = { SIGWINCH, 0 };

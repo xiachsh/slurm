@@ -171,6 +171,7 @@ typedef struct salloc_options {
 	char *mcs_label;	/* mcs label if mcs plugin in use */
 	time_t deadline;	/* --deadline                   */
 	uint32_t job_flags;	/* --kill_invalid_dep, --gres-flags */
+        int group_number;       /* pack group number */
 } opt_t;
 
 extern opt_t opt;
