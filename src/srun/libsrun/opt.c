@@ -215,9 +215,10 @@
 #define LONG_OPT_EXPORT          0x158
 #define LONG_OPT_PRIORITY        0x160
 #define LONG_OPT_ACCEL_BIND      0x161
+#define LONG_OPT_PACK_GROUP      0x162
 #define LONG_OPT_MCS_LABEL       0x165
 #define LONG_OPT_DEADLINE        0x166
-#define LONG_OPT_TASK_GROUP      0x167
+
 
 
 extern char **environ;
@@ -1594,17 +1595,6 @@ static void _set_options(const int argc, char **argv)
 			if (opt.mem_per_cpu < 0) {
 				error("invalid memory constraint %s",
 				      optarg);
-				exit(error_exit);
-			}
-			break;
-		case LONG_OPT_MPI_COMBINE:
-			if (strcmp(optarg, "yes") == 0)
-				opt.mpi_combine = true;
-			else if (strcmp(optarg, "no") == 0)
-				opt.mpi_combine = false;
-			else {
-				error("\"--mpi-combine=%s\" -- invalid MPI_COMBINE, "
-				      " must be yes or no.", optarg);
 				exit(error_exit);
 			}
 			break;

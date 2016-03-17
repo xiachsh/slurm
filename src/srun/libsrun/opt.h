@@ -230,6 +230,8 @@ typedef struct srun_options {
 	char **spank_job_env;	/* SPANK controlled environment for job
 				 * Prolog and Epilog		*/
 	int spank_job_env_size;	/* size of spank_job_env	*/
+        char **pelog_env; 	/* other prolog/epilog environment envs */
+	int pelog_env_size;    	/* size of pelog_env */
 	int req_switch;		/* Minimum number of switches	*/
 	int wait4switch;	/* Maximum time to wait for minimum switches */
 	bool user_managed_io;   /* 0 for "normal" IO, 1 for "user manged" IO */
@@ -243,8 +245,6 @@ typedef struct srun_options {
 	char *mcs_label;	/* mcs label if mcs plugin in use */
 	time_t deadline; 	/* --deadline                   */
 	uint32_t job_flags;	/* --gres-flags */
-	uint32_t ngrpidx;     	/* Number of task group indexes */
-	uint32_t *groupidx;	/* Indexes of task groups running these tasks */
 	int group_number;       /* pack group number */  //dhp
 	uint32_t ngrpidx;     	/* Number of pack group indexes */
 	uint32_t *groupidx;	/* Indexes of pack groups running these tasks */
@@ -253,6 +253,7 @@ typedef struct srun_options {
 	int mpi_ntasks;		/* number of MPI tasks for all steps combined */ // MNP PMI
 	int mpi_nnodes;		/* number of MPI nodes for all steps combined */ // MNP PMI
 	int mpi_stepftaskid;	/* first MPI taskid for this step */ // MNP PMI
+
 } opt_t;
 
 extern opt_t opt;
@@ -324,6 +325,8 @@ extern char *spank_get_job_env(const char *name);
 extern int   spank_set_job_env(const char *name, const char *value,
 			       int overwrite);
 extern int   spank_unset_job_env(const char *name);
+
+extern int   pelog_set_env(int overwrite);
 
 /* Initialize the spank_job_env based upon environment variables set
  *	via salloc or sbatch commands */
