@@ -2990,12 +2990,6 @@ extern int test_job_dependency(struct job_record *job_ptr)
 	struct job_record *qjob_ptr, *djob_ptr, *dcjob_ptr;
 	uint64_t debug_flags = slurm_get_debug_flags();
 	time_t now = time(NULL);
-	/* For performance reasons with job arrays, we cache dependency
-	 * results and re-use them whenever possible */
-	static uint32_t cache_job_id = 0;
-	static struct job_record *cache_job_ptr = NULL;
-	static int cache_results;
-	static time_t cache_time = 0;
 	time_t orphan_et;
 
 	if ((job_ptr->details == NULL) ||
@@ -3228,14 +3222,6 @@ extern int test_job_dependency(struct job_record *job_ptr)
 		results = 2;
 	else if (depends)
 		results = 1;
-
-	if ((job_ptr->array_task_id != NO_VAL) &&
-	    (job_ptr->array_recs == NULL)) {
-		cache_job_id  = job_ptr->job_id;
-		cache_job_ptr = job_ptr;
-		cache_results = results;
-		cache_time = now;
-	}
 
 	return results;
 }
