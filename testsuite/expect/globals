@@ -1,4 +1,4 @@
-#!/usr/bin/expect
+#!/usr/bin/env expect
 ############################################################################
 # Purpose: Establish global state information for SLURM test suite
 #
@@ -126,7 +126,7 @@ cset partition ""
 #cset mpicc	"/home/jette/mpich2-install/bin/mpicc"
 #cset use_pmi	1
 # OR for other versions of MPICH, use this
-cset mpicc       "/opt/mpi/bullxmpi/1.2.8.4/mpicc"
+cset mpicc       "/usr/local/bin/mpicc"
 cset use_pmi	0
 #cset upcc       "/usr/local/bin/upcc"
 cset upcc       "/usr/bin/xlupc"
@@ -185,9 +185,9 @@ cset bin_sleep  "sleep"
 cset bin_sort   "sort"
 cset bin_touch  "touch"
 cset bin_uname	"uname"
-cset bin_usleep "usleep"
 cset bin_wc	"wc"
 cset bin_printenv "printenv"
+cset bin_uniq   "uniq"
 
 #
 # Let the commands complete without expect timing out waiting for a
@@ -198,7 +198,7 @@ cset bin_printenv "printenv"
 cset max_job_delay 120
 
 #
-# Files must be propogated between nodes within this number of seconds.
+# Files must be propagated between nodes within this number of seconds.
 # The delay may be due to NFS.
 #
 cset max_file_delay 90
@@ -216,13 +216,14 @@ cset max_stress_tasks 4
 #
 # The error message that the "sleep" command prints when we run "sleep aaa".
 #
-cset sleep_error_message "(invalid time interval)|(bad character in argument)"
+cset sleep_error_message "(invalid time interval)|(bad character in argument)|(usage: sleep seconds)"
 
 # Other common variables
 set alpha                "\[a-zA-Z\]+"
 set alpha_cap            "\[A-Z\]+"
 set alpha_comma_slash    "\[a-zA-Z/,\]+"
 set alpha_numeric        "\[a-zA-Z0-9\]+"
+set alpha_numeric_colon  "\[a-zA-Z0-9_,\:\-\]+"
 set alpha_numeric_comma  "\[a-zA-Z0-9_,\-\]+"
 set alpha_numeric_under  "\[a-zA-Z0-9_\-\]+"
 set alpha_under          "\[A-Z_\]+"
@@ -263,7 +264,7 @@ proc cancel_job { job_id } {
 	}
 
 	send_user "cancelling $job_id\n"
-	exec $scancel -Q $job_id
+	set status [catch [exec $scancel -Q $job_id] result]
 	exec $bin_sleep 1
 	return [wait_for_job $job_id "DONE"]
 }
@@ -430,7 +431,7 @@ proc get_my_gid {  } {
 ################################################################
 
 proc kill_salloc {  } {
-	global bin_id bin_pkill bin_sleep bin_usleep number
+	global bin_id bin_pkill bin_sleep number
 
 	spawn $bin_id -u
 	expect {
@@ -466,7 +467,7 @@ proc kill_salloc {  } {
 ################################################################
 
 proc kill_srun {  } {
-	global bin_id bin_pkill bin_sleep bin_usleep number
+	global bin_id bin_pkill bin_sleep number
 
 	spawn $bin_id -u
 	expect {
@@ -563,6 +564,7 @@ proc wait_for_file { file_name } {
 #                            DONE any terminated state
 #                            PENDING job is pending
 #                            RUNNING job is running
+#                            SUSPENDED job is suspended
 #
 # NOTE: We sleep for two seconds before replying that a job is
 # done to give time for I/O completion (stdout/stderr files)
@@ -577,6 +579,7 @@ proc wait_for_job { job_id desired_state } {
 		"DONE" {}
 		"PENDING" {}
 		"RUNNING" {}
+		"SUSPENDED" {}
 		default {
 			send_user "FAILURE: wait_for_job with invalid state: $desired_state\n"
 			return 1
@@ -601,6 +604,7 @@ proc wait_for_job { job_id desired_state } {
 		switch $state {
 			"NOT_FOUND" -
 			"CANCELLED" -
+			"DEADLINE" -
 			"FAILED" -
 			"TIMEOUT" -
 			"NODE_FAIL" -
@@ -615,6 +619,10 @@ proc wait_for_job { job_id desired_state } {
 					send_user "Job $job_id is $state, "
 					send_user "but we wanted RUNNING\n"
 				}
+				if {[string compare $desired_state "SUSPENDED"] == 0} {
+					send_user "Job $job_id is $state, "
+					send_user "but we wanted SUSPENDED\n"
+				}
 				return 1
 			}
 			"PENDING" {
@@ -628,6 +636,14 @@ proc wait_for_job { job_id desired_state } {
 			"RUNNING" {
 				if {[string compare $desired_state "RUNNING"] == 0} {
 					send_user "Job $job_id is RUNNING\n"
+					return 0
+				}
+				send_user "Job $job_id is in state $state, "
+				send_user "desire $desired_state\n"
+			}
+			"SUSPENDED" {
+				if {[string compare $desired_state "SUSPENDED"] == 0} {
+					send_user "Job $job_id is SUSPENDED\n"
 					return 0
 				}
 				send_user "Job $job_id is in state $state, "
@@ -863,6 +879,35 @@ proc test_limits_enforced { } {
 	expect {
 		-re "AccountingStorageEnforce *= (\[a-z]+),limits" {
 			set enforced 1
+			exp_continue
+		}
+		eof {
+			wait
+		}
+	}
+
+	log_user 1
+	return $enforced
+}
+
+################################################################
+#
+# Proc: test_enforce_part_limits
+#
+# Purpose: Return value of EnforcePartLimits
+#
+# Returns EnforcePartLimits value (ALL, ANY, or NO)
+#
+################################################################
+proc test_enforce_part_limits { } {
+	global alpha scontrol
+
+	log_user 0
+	set enforced "UNKNOWN"
+	spawn $scontrol show config
+	expect {
+		-re "EnforcePartLimits *= ($alpha)" {
+			set enforced $expect_out(1,string)
 			exp_continue
 		}
 		eof {
@@ -1589,7 +1634,7 @@ proc test_front_end { } {
 #
 # Proc: test_multiple_slurmd
 #
-# Returns 1 if running multple slurmd per node
+# Returns 1 if running multiple slurmd per node
 #
 ################################################################
 
@@ -1904,6 +1949,37 @@ proc test_emulated { } {
 
 ################################################################
 #
+# Proc: test_killonbadexit
+#
+# Purpose: Determine if KillOnBadExit is configured to be 1.
+#
+#
+# Returns 1 if KillOnBadExit is 1.
+#
+################################################################
+
+proc test_killonbadexit { } {
+	global scontrol bin_bash bin_grep
+
+	log_user 0
+	set killonbadexit 0
+	spawn -noecho $bin_bash -c "exec $scontrol show config | $bin_grep KillOnBadExit"
+	expect {
+		-re "KillOnBadExit *= *1" {
+			set killonbadexit 1
+			exp_continue
+		}
+		eof {
+			wait
+		}
+	}
+	log_user 1
+
+	return $killonbadexit
+}
+
+################################################################
+#
 # Proc: get_cycle_count
 #
 # Purpose: For tests with iteration counts (e.g. test9.1, test9.2)
@@ -1961,7 +2037,7 @@ proc test_select_type { } {
 #
 # Purpose: Determine SelectTypeParameters being used
 #
-# Returns value of SelectTypeParameters
+# Returns 1 if "type" (input) is found, 0 otherwise
 #
 ################################################################
 
@@ -2429,7 +2505,7 @@ proc is_super_user { } {
 #
 ################################################################
 proc check_acct_associations { } {
-	global sacctmgr number alpha_numeric_under
+	global sacctmgr number alpha_numeric_under exit_code
 
 	set rc 1
 	log_user 0
@@ -2533,8 +2609,40 @@ proc get_job_acct_freq { } {
 
 	log_user 1
 	return $freq_val
+}
 
+################################################################
+#
+# Proc: get_job_acct_type
+#
+# Purpose: gets the value of JobAcctGatherType
+#
+# Returns: JobAcctGatherType value
+#
+################################################################
+proc get_job_acct_type { } {
+	global scontrol alpha
 
+	log_user 0
+	set gather_type "none"
+
+	spawn $scontrol show config
+	expect {
+		-re "JobAcctGatherType *= jobacct_gather/($alpha)" {
+			set gather_type $expect_out(1,string)
+			exp_continue
+		}
+		-re "JobAcctGatherType *= ($alpha)" {
+			set gather_type $expect_out(1,string)
+			exp_continue
+		}
+		eof {
+			wait
+		}
+	}
+
+	log_user 1
+	return $gather_type
 }
 
 ################################################################
@@ -2547,7 +2655,7 @@ proc get_job_acct_freq { } {
 #
 ################################################################
 proc check_accounting_admin_level { } {
-	global sacctmgr alpha alpha_numeric_under bin_id
+	global sacctmgr alpha alpha_numeric_under bin_id exit_code
 
 	set admin_level ""
 	set user_name ""
@@ -2603,7 +2711,7 @@ proc check_accounting_admin_level { } {
 #
 ################################################################
 proc get_cluster_name { } {
-	global scontrol alpha_numeric_under
+	global scontrol alpha_numeric_under exit_code
 	#
 	# Use scontrol to find the cluster name
 	#
@@ -2676,7 +2784,7 @@ proc get_control_machine { } {
 ################################################################
 
 proc get_bluegene_layout { } {
-	global scontrol alpha_numeric_under
+	global scontrol alpha_numeric_under exit_code
 
 	log_user 0
 	set layout 0
@@ -2711,7 +2819,7 @@ proc get_bluegene_layout { } {
 ################################################################
 
 proc get_bluegene_psets { } {
-	global scontrol number
+	global scontrol number exit_code
 
 	log_user 0
 	set psets 0
@@ -2749,7 +2857,7 @@ proc get_bluegene_psets { } {
 ################################################################
 
 proc get_bluegene_type { } {
-	global scontrol alpha
+	global scontrol alpha exit_code
 
 	log_user 0
 	set type 0
@@ -2784,7 +2892,7 @@ proc get_bluegene_type { } {
 ################################################################
 
 proc get_bluegene_procs_per_cnode { } {
-	global scontrol number
+	global scontrol number exit_code
 
 	log_user 0
 	set cpu_cnt 0
@@ -2819,7 +2927,7 @@ proc get_bluegene_procs_per_cnode { } {
 ################################################################
 
 proc get_bluegene_cnodes_per_mp { } {
-	global scontrol number
+	global scontrol number exit_code
 
 	log_user 0
 	set node_cnt 1
@@ -2854,7 +2962,7 @@ proc get_bluegene_cnodes_per_mp { } {
 ################################################################
 
 proc get_bluegene_allow_sub_blocks { } {
-	global scontrol alpha
+	global scontrol alpha exit_code
 
 	log_user 0
 	set type 0
@@ -2889,7 +2997,7 @@ proc get_bluegene_allow_sub_blocks { } {
 ################################################################
 
 proc get_node_cnt { } {
-	global scontrol
+	global scontrol exit_code
 
 	log_user 0
 	set node_cnt 0
@@ -2926,7 +3034,7 @@ proc get_node_cnt { } {
 proc get_node_cnt_in_part { partition } {
 	global scontrol number
 
-#	log_user 0
+	log_user 0
 	set node_cnt 0
 	set scon_pid [spawn -noecho $scontrol show partition $partition]
 	expect {
@@ -2943,7 +3051,7 @@ proc get_node_cnt_in_part { partition } {
 		eof {
 		}
 	}
-#	log_user 1
+	log_user 1
 
 	return $node_cnt
 }
@@ -3043,12 +3151,12 @@ proc print_success { test_id } {
 proc change_subbp_state { node ionodes state } {
 	global scontrol smap
 
-	set exit_code 0
+	set return_code 0
 
 	set my_pid [spawn $scontrol update subbpname=$node\[$ionodes\] state=$state]
 	expect {
 		-re "slurm_update error:" {
-			set exit_code 1
+			set return_code 1
 			exp_continue
 		}
 		-re "Unable to contact" {
@@ -3058,15 +3166,15 @@ proc change_subbp_state { node ionodes state } {
 		timeout {
 			send_user "\nFAILURE: scontrol not responding\n"
 			slow_kill $my_pid
-			set exit_code 1
+			set return_code 1
 		}
 		eof {
 			wait
 		}
 	}
 
-	if { $exit_code } {
-		return $exit_code
+	if { $return_code } {
+		return $return_code
 	}
 
 	set match 0
@@ -3087,7 +3195,7 @@ proc change_subbp_state { node ionodes state } {
 		timeout {
 			send_user "\nFAILURE: smap not responding\n"
 			slow_kill $my_pid
-			set exit_code 1
+			set return_code 1
 		}
 		eof {
 			wait
@@ -3096,10 +3204,10 @@ proc change_subbp_state { node ionodes state } {
 
 	if {$match != 2} {
 		send_user "\nFAILURE: Subbp did not go into $state state. $match\n"
-		set exit_code 1
+		set return_code 1
 	}
 
-	return $exit_code
+	return $return_code
 }
 
 ################################################################
@@ -3256,7 +3364,7 @@ proc check_node_mem { } {
 #
 ################################################################
 proc get_fs_damping_factor { } {
-	global scontrol number
+	global scontrol number exit_code
 
 	log_user 0
 	set damp 1
@@ -3292,7 +3400,7 @@ proc get_fs_damping_factor { } {
 ################################################################
 
 proc slurmctld_plug_stack_nonstop { } {
-	global scontrol alpha_numeric_comma
+	global scontrol alpha_numeric_comma exit_code
 
 	log_user 0
 	set nonstop_enforce 0
@@ -3329,7 +3437,7 @@ proc slurmctld_plug_stack_nonstop { } {
 ################################################################
 
 proc job_submit_all_partitions { } {
-	global scontrol alpha_numeric_comma
+	global scontrol alpha_numeric_comma exit_code
 
 	log_user 0
 	set all_partitions 0
