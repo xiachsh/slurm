@@ -1262,7 +1262,7 @@ static void _dump_job_state(struct job_record *dump_job_ptr, Buf buffer)
 static int _load_job_state(Buf buffer, uint16_t protocol_version)
 {
 	uint32_t job_id, user_id, group_id, time_limit, priority, alloc_sid;
-	uint32_t pack_leader;
+	uint32_t pack_leader = 0;
 	uint32_t exit_code, assoc_id, db_index, name_len, time_min;
 	uint32_t next_step_id, total_cpus, total_nodes = 0, cpu_cnt;
 	uint32_t resv_id, spank_job_env_size = 0, qos_id, derived_ec = 0;
@@ -5305,8 +5305,9 @@ extern int job_complete(uint32_t job_id, uid_t uid, bool requeue,
 		if (isleader) {
 			if (job_ptr->job_state == JOB_COMPLETE
 			    || job_ptr->job_state == JOB_COMPLETING) {
-				if (slurm_get_debug_flags() &
-						DEBUG_FLAG_JOB_PACK) {
+				if ((slurm_get_debug_flags() &
+						DEBUG_FLAG_JOB_PACK)
+				    && ldr_dep_ptr) {
 
 					info("JPCK: skipping job pack leader "
 					     "%d, (already complete)",
@@ -5314,9 +5315,10 @@ extern int job_complete(uint32_t job_id, uid_t uid, bool requeue,
 				}
 				return SLURM_SUCCESS;
 			}
-			if (slurm_get_debug_flags() & DEBUG_FLAG_JOB_PACK) {
+			if ((slurm_get_debug_flags() & DEBUG_FLAG_JOB_PACK)
+			    && ldr_dep_ptr) {
 				info("JPCK: Completing job pack leader=%d",
-				     job_id);
+				     ldr_dep_ptr->job_id);
 			}
 		}
 	}
