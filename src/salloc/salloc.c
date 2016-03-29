@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 	job_desc_msg_t desc;
 	resource_allocation_response_msg_t *alloc;
 	time_t before, after;
-	allocation_msg_thread_t *msg_thr;
+	allocation_msg_thread_t *msg_thr = NULL;
 	char **env = NULL, *cluster_name;
 	int status = 0;
 	int retries = 0;
@@ -743,7 +743,7 @@ int main_jobpack(int argc, char *argv[])
 	job_desc_msg_t desc;
 	resource_allocation_response_msg_t *alloc;
 	time_t before, after;
-	allocation_msg_thread_t *msg_thr;
+	allocation_msg_thread_t *msg_thr = NULL;
 	char **env = NULL, *cluster_name;
 	int status = 0;
 	int retries = 0;
@@ -838,7 +838,7 @@ int main_jobpack(int argc, char *argv[])
 			if (env == NULL)
 				exit(error_exit);    /* error already logged */
 			_set_rlimits(env);
-			_copy_env(pack_job_env[group_number].env, env);
+			_copy_env(&pack_job_env[group_number].env, env);
 		}
 
 		/*
@@ -1041,7 +1041,7 @@ int main_jobpack(int argc, char *argv[])
 		_copy_opt_struct(&opt, pack_job_env[group_number].opt);
 		_copy_job_desc_msg(&desc, pack_job_env[group_number].desc);
 		if (pack_job_env[group_number].env[0] != NULL) {
-			_copy_env(env, pack_job_env[group_number].env);
+			_copy_env(&env, pack_job_env[group_number].env);
 		} else {
 		        env = NULL;
 		}
@@ -1124,8 +1124,10 @@ int main_jobpack(int argc, char *argv[])
 	hostlist_sort(hostlist);
 
 	/* Set SLURM_LISTJOBIDS env */
-	setenv("SLURM_LISTJOBIDS", aggr_jobidptr, 1);
-	xfree(aggr_jobidptr);
+	if (aggr_jobidptr) {
+		setenv("SLURM_LISTJOBIDS", aggr_jobidptr, 1);
+		xfree(aggr_jobidptr);
+	}
 
 	/* Set SLURM_NUMPACK env */
 	numpacklen = snprintf(NULL, 0, "%d", pack_desc_count);
