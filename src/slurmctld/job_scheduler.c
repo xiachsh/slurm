@@ -2991,6 +2991,7 @@ extern int test_job_dependency(struct job_record *job_ptr)
 	uint64_t debug_flags = slurm_get_debug_flags();
 	time_t now = time(NULL);
 	time_t orphan_et;
+	struct job_record *leader_ptr = NULL;
 
 	if ((job_ptr->details == NULL) ||
 	    (job_ptr->details->depend_list == NULL) ||
@@ -3044,6 +3045,18 @@ extern int test_job_dependency(struct job_record *job_ptr)
 					}
 					failure = true;
 				}
+				break;
+			} else if (!(leader_ptr = find_job_record(
+				   job_ptr->pack_leader))) {
+				if (debug_flags & DEBUG_FLAG_JOB_PACK) {
+					info("JPCK: Pack leader %d for pack "
+					     "member %d can't be found. "
+					     "Cancelling orphaned job.",
+					     job_ptr->pack_leader,
+					     job_ptr->job_id);
+					}
+				job_ptr->pack_leader = 0;
+				failure = true;
 				break;
 			} else if (job_ptr->job_id > lpackmbr) {
 				if (debug_flags & DEBUG_FLAG_JOB_PACK) {
