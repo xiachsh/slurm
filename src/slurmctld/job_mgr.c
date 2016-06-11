@@ -7399,6 +7399,11 @@ void job_time_limit(void)
 			info("%s: Configuration for job %u is complete",
 			      __func__, job_ptr->job_id);
 			job_config_fini(job_ptr);
+			if (job_ptr->bit_flags & NODE_REBOOT) {
+				job_ptr->bit_flags &= (~NODE_REBOOT);
+				(void) select_g_job_mem_confirm(job_ptr);
+				launch_job(job_ptr);
+			}
 		}
 #endif
 		/* This needs to be near the top of the loop, checks every
