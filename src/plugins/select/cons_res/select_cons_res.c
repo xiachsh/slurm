@@ -2334,6 +2334,38 @@ extern int select_p_job_signal(struct job_record *job_ptr, int signal)
 	return SLURM_SUCCESS;
 }
 
+extern int select_p_job_mem_confirm(struct job_record *job_ptr)
+{
+	int i_first, i_last, i, offset;
+
+	xassert(job_ptr);
+
+	if (job_ptr->details->pn_min_memory != 0)
+		return SLURM_SUCCESS;
+	if ((job_ptr->job_resrcs == NULL) ||
+	    (job_ptr->job_resrcs->node_bitmap == NULL) ||
+	    (job_ptr->job_resrcs->memory_allocated == NULL))
+		return SLURM_ERROR;
+
+	i_first = bit_ffs(job_ptr->job_resrcs->node_bitmap);
+	if (i_first >= 0)
+		i_last = bit_fls(job_ptr->job_resrcs->node_bitmap);
+	else
+		i_last = i_first - 1;
+	for (i = i_first, offset = 0; i <= i_last; i++) {
+		if (!bit_test(job_ptr->job_resrcs->node_bitmap, i))
+			continue;
+		job_ptr->job_resrcs->memory_allocated[offset] =
+			select_node_record[i].real_memory -
+			select_node_record[i].mem_spec_limit;
+		select_node_usage[i].alloc_memory =
+			job_ptr->job_resrcs->memory_allocated[offset];
+		offset++;
+	}
+
+	return SLURM_SUCCESS;
+}
+
 extern int select_p_job_fini(struct job_record *job_ptr)
 {
 	xassert(job_ptr);
