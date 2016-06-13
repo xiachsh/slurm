@@ -3621,9 +3621,7 @@ static void *_wait_boot(void *arg)
 
 	lock_slurmctld(job_write_lock);
 	prolog_running_decr(job_ptr);
-	if ((job_ptr->bit_flags & NODE_MEM_CALC) &&
-	    (slurmctld_conf.fast_schedule == 0))
-		select_g_job_mem_confirm(job_ptr);
+	job_validate_mem(job_ptr);
 	unlock_slurmctld(job_write_lock);
 
 	return NULL;
